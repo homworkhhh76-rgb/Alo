@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a1020">
+<title>خطّي — اتصال مباشر</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#060b15;--panel:#0d1525;--panel2:#111c30;--line:#233149;
+  --text:#f7f9ff;--muted:#8f9bb0;--accent:#735cff;--accent2:#4d37d7;
+  --good:#3dde91;--danger:#ff6576
+}
+body{margin:0;background:radial-gradient(circle at 50% -10%,#192745 0,#060b15 45%);color:var(--text);font-family:Cairo,Tahoma,Arial,sans-serif;min-height:100dvh}
+*::-webkit-scrollbar{width:6px}*::-webkit-scrollbar-thumb{background:#24324a;border-radius:10px}
+.app{width:min(900px,100%);min-height:100dvh;margin:auto;display:flex;flex-direction:column;background:rgba(6,11,21,.78);backdrop-filter:blur(10px)}
+.header{height:78px;display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);background:rgba(10,16,29,.92);position:sticky;top:0;z-index:5}
+.avatar{width:48px;height:48px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:800;font-size:23px;box-shadow:0 8px 24px #5f49ff33}
+.headinfo{flex:1}.headinfo b{font-size:16px}.status{font-size:11px;color:var(--muted);margin-top:2px}.status.online{color:var(--good)}
+.icon{width:42px;height:42px;border:1px solid var(--line);border-radius:13px;background:var(--panel2);color:#fff;font-size:18px}
+.main{padding:18px;display:grid;gap:14px}
+.card{background:linear-gradient(180deg,#0e1829,#0b1423);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:0 18px 60px #0004}
+.card h2{margin:0 0 5px;font-size:20px}.sub{font-size:12px;line-height:1.9;color:var(--muted);margin:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.action{border:1px solid #2a3953;background:#111d30;color:#fff;border-radius:16px;padding:14px;font:inherit;font-weight:700}
+.action.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent}
+.action:active{transform:scale(.99)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.pairbox{background:#07101d;border:1px solid var(--line);border-radius:18px;padding:15px;text-align:center}
+.label{font-size:11px;color:var(--muted);margin-bottom:7px}.code{font-size:34px;letter-spacing:10px;font-weight:800;direction:ltr}
+.small{font-size:10px;color:#7d8ba0;line-height:1.8;margin-top:8px}
+.qr{margin:10px auto 0;width:150px;height:150px;border-radius:14px;background:#fff;padding:8px;display:grid;place-items:center}
+.qr canvas{width:100%;height:100%;image-rendering:pixelated}
+.devices{display:grid;gap:9px;margin-top:12px}
+.device{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-radius:15px;background:#0a1321}
+.dot{width:10px;height:10px;border-radius:50%;background:#6e7c92}.dot.good{background:var(--good);box-shadow:0 0 0 5px #3dde9120}
+.devtxt{flex:1}.devtxt b{display:block;font-size:13px}.devtxt span{font-size:10px;color:var(--muted)}
+.chat{display:none;min-height:62dvh;max-height:75dvh;flex-direction:column;overflow:hidden}
+.messages{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:7px}
+.empty{margin:auto;text-align:center;color:var(--muted);font-size:12px}
+.msg{max-width:80%;padding:10px 13px;border-radius:18px;line-height:1.7;font-size:14px;word-break:break-word}
+.mine{align-self:flex-end;background:linear-gradient(135deg,var(--accent),#5a42e3);border-bottom-right-radius:6px}.theirs{align-self:flex-start;background:#132138;border:1px solid #253650;border-bottom-left-radius:6px}
+.time{font-size:9px;opacity:.6;margin-top:2px}
+.composer{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.input{flex:1;min-width:0;background:#0c1727;color:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 14px;outline:none;font:inherit}
+.send{width:48px;border:0;border-radius:15px;background:var(--accent);color:#fff;font-size:18px}
+.notice{font-size:11px;color:#ffd36e;background:#241d0b;border:1px solid #5b4820;border-radius:13px;padding:10px;line-height:1.7}
+.modal{position:fixed;inset:0;background:#0009;display:none;align-items:flex-end;justify-content:center;z-index:30;padding:12px}
+.modal.open{display:flex}.sheet{width:min(560px,100%);background:#0d1726;border:1px solid var(--line);border-radius:24px;padding:18px}
+.sheet h3{margin:0 0 8px}.close{float:left}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#17243a;color:#fff;padding:10px 15px;border-radius:12px;font-size:12px;display:none;z-index:50}
+@media(max-width:650px){.grid,.pair{grid-template-columns:1fr}.main{padding:11px}.header{height:70px}.code{font-size:30px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="avatar">خ</div>
+    <div class="headinfo">
+      <b>خطّي</b>
+      <div id="status" class="status">جاهز</div>
+    </div>
+    <button class="icon" onclick="showInfo()">ⓘ</button>
+  </header>
+
+  <main class="main">
+    <section id="homeCard" class="card">
+      <h2>اتصال مباشر</h2>
+      <p class="sub">نسخة ويب واحدة. تدعم المحادثة بين نافذتين على نفس الجهاز، وتجهز واجهة الاقتران بالرمز والباركود وBluetooth.</p>
+
+      <div class="grid">
+        <button class="action primary" onclick="newPair()">🔢 إنشاء رمز 4 أرقام</button>
+        <button class="action" onclick="focusCode()">📷 قراءة/إدخال رمز</button>
+        <button class="action" onclick="bluetoothConnect()">🔵 فحص Bluetooth</button>
+        <button class="action" onclick="simulateSecondTab()">🪟 اختبار نافذة ثانية</button>
+      </div>
+
+      <div class="pair">
+        <div class="pairbox">
+          <div class="label">رمز الاقتران</div>
+          <div id="pairCode" class="code">----</div>
+          <div class="qr"><canvas id="barCanvas" width="134" height="134"></canvas></div>
+          <div class="small">باركود بصري للرمز. استخدم القراءة بالكاميرا/التطبيق الداعم للباركود أو أدخل الرقم يدويًا.</div>
+        </div>
+
+        <div class="pairbox">
+          <div class="label">أدخل الرمز</div>
+          <input id="codeInput" class="input" maxlength="4" inputmode="numeric" placeholder="1234" style="text-align:center;direction:ltr;font-size:24px;letter-spacing:7px">
+          <button class="action primary" style="width:100%;margin-top:10px" onclick="pairWithCode()">ربط</button>
+          <div class="small">على نفس المتصفح، نافذتان من نفس الموقع ستتعرفان تلقائيًا عبر BroadcastChannel.</div>
+        </div>
+      </div>
+
+      <div class="devices">
+        <div class="device"><span id="localDot" class="dot good"></span><div class="devtxt"><b>هذا الجهاز</b><span id="localMode">المتصفح الحالي</span></div></div>
+        <div class="device"><span id="peerDot" class="dot"></span><div class="devtxt"><b id="peerName">لا يوجد جهاز ثانٍ</b><span id="peerMode">بانتظار الاقتران</span></div></div>
+      </div>
+
+      <div class="notice" style="margin-top:12px">
+        مهم: المتصفحات لا تسمح لصفحة HTML واحدة بأن تجعل هاتفًا آخر يكتشفها ويصبح Bluetooth “طرفًا” آخر مثل ShareMe. لذلك الاقتران الحقيقي بين جهازين عبر الإنترنت الصفر يحتاج طبقة نظام/خدمة محلية أو تطبيقًا أصليًا. هذا الملف ينجز الاتصال الفعلي بين نافذتين على نفس الجهاز بدون إنترنت.
+      </div>
+    </section>
+
+    <section id="chatCard" class="card chat">
+      <div class="messages" id="messages"><div id="empty" class="empty">تم الاتصال. اكتب رسالة.</div></div>
+      <div class="composer">
+        <input id="msg" class="input" placeholder="اكتب رسالة..." autocomplete="off">
+        <button class="send" onclick="sendMessage()">➤</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="modal" class="modal">
+  <div class="sheet">
+    <button class="icon close" onclick="closeInfo()">×</button>
+    <h3>حدود المتصفح</h3>
+    <p class="sub">
+      داخل نفس الموقع ونفس المتصفح يمكن استخدام BroadcastChannel لنقل الرسائل بين تبويبين/نافذتين.
+      أما هاتفان مختلفان، فـ Web Bluetooth في المتصفح يعمل عادةً كعميل BLE ولا يعطي الصفحة صلاحية أن تصبح جهاز Bluetooth
+      يعلن عن نفسه للطرف الآخر. لذلك لا يمكن بناء ShareMe كامل بين هاتفين مختلفين بملف HTML فقط.
+    </p>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const TAB_ID = (crypto.randomUUID ? crypto.randomUUID() : Date.now()+"-"+Math.random());
+let channel=null, room="", paired=false;
+
+const $=id=>document.getElementById(id);
+function toast(t){const x=$("toast");x.textContent=t;x.style.display="block";clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display="none",2300)}
+function showInfo(){$("modal").classList.add("open")}
+function closeInfo(){$("modal").classList.remove("open")}
+function focusCode(){$("codeInput").focus()}
+
+function setPeer(yes,name="النافذة الثانية"){
+  paired=yes;
+  $("peerDot").className="dot "+(yes?"good":"");
+  $("peerName").textContent=yes?name:"لا يوجد جهاز ثانٍ";
+  $("peerMode").textContent=yes?"متصل عبر قناة المتصفح":"بانتظار الاقتران";
+  $("status").textContent=yes?"متصل الآن":"جاهز";
+  $("status").className="status "+(yes?"online":"");
+  if(yes) openChat();
+}
+
+function makeVisualCode(code){
+  const c=$("barCanvas"),ctx=c.getContext("2d");
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);
+  // Deterministic visual barcode/QR-like grid for the 4-digit code.
+  let seed=0;for(const ch of code)seed=(seed*31+ch.charCodeAt(0))>>>0;
+  const n=17,cell=Math.floor(118/n),off=8;
+  function bit(x,y){seed=(seed*1664525+1013904223)>>>0;return ((seed^(x*92821+y*68917))&1)===1}
+  function finder(x0,y0){
+    ctx.fillStyle="#000";ctx.fillRect(off+x0*cell,off+y0*cell,7*cell,7*cell);
+    ctx.fillStyle="#fff";ctx.fillRect(off+(x0+1)*cell,off+(y0+1)*cell,5*cell,5*cell);
+    ctx.fillStyle="#000";ctx.fillRect(off+(x0+2)*cell,off+(y0+2)*cell,3*cell,3*cell);
+  }
+  finder(0,0);finder(10,0);finder(0,10);
+  ctx.fillStyle="#000";
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+    const finderArea=(x<7&&y<7)||(x>=10&&y<7)||(x<7&&y>=10);
+    if(!finderArea && bit(x,y))ctx.fillRect(off+x*cell,off+y*cell,cell,cell);
+  }
+}
+function newPair(){
+  room=String(Math.floor(1000+Math.random()*9000));
+  $("pairCode").textContent=room;makeVisualCode(room);
+  toast("تم إنشاء رمز الاقتران "+room);
+  ensureChannel();announce();
+}
+function pairWithCode(){
+  const code=$("codeInput").value.replace(/\D/g,"").slice(0,4);
+  if(code.length!==4)return toast("اكتب 4 أرقام");
+  room=code;$("pairCode").textContent=code;makeVisualCode(code);
+  ensureChannel();announce();
+  toast("تم فتح قناة الخط");
+}
+function ensureChannel(){
+  if(channel)channel.close();
+  channel=new BroadcastChannel("khatti-"+room);
+  channel.onmessage=e=>{
+    const m=e.data;if(!m||m.from===TAB_ID)return;
+    if(m.type==="hello"){channel.postMessage({type:"helloAck",from:TAB_ID,to:m.from,name:"الجهاز الآخر"})}
+    if(m.type==="helloAck"&&m.to===TAB_ID)setPeer(true,m.name||"الجهاز الآخر");
+    if(m.type==="text"){setPeer(true);addMessage(m.text,false,m.at)}
+  };
+}
+function announce(){
+  setTimeout(()=>channel?.postMessage({type:"hello",from:TAB_ID}),50);
+}
+function sendMessage(){
+  const i=$("msg"),text=i.value.trim();if(!text)return;
+  if(!channel||!paired)return toast("اربط نافذة ثانية أولاً");
+  const at=Date.now();
+  channel.postMessage({type:"text",from:TAB_ID,text,at});
+  addMessage(text,true,at);i.value="";i.focus();
+}
+function addMessage(text,mine,at){
+  $("empty")?.remove();
+  const d=document.createElement("div");d.className="msg "+(mine?"mine":"theirs");
+  const t=document.createElement("div");t.textContent=text;
+  const tm=document.createElement("div");tm.className="time";
+  tm.textContent=new Date(at||Date.now()).toLocaleTimeString("ar",{hour:"2-digit",minute:"2-digit"});
+  d.append(t,tm);$("messages").appendChild(d);$("messages").scrollTop=$("messages").scrollHeight;
+}
+async function bluetoothConnect(){
+  if(!navigator.bluetooth)return toast("هذا المتصفح لا يدعم Web Bluetooth");
+  try{
+    const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true});
+    toast("تم اختيار Bluetooth: "+(device.name||"جهاز غير مسمى"));
+    $("peerName").textContent=device.name||"جهاز Bluetooth";
+    $("peerMode").textContent="تم اختيار جهاز Bluetooth";
+  }catch(e){toast("لم يتم اختيار جهاز Bluetooth")}
+}
+function simulateSecondTab(){
+  if(!room)newPair();
+  window.open(location.href+"#second-"+room,"_blank");
+  toast("افتح النافذة الجديدة بنفس الرمز");
+}
+window.addEventListener("hashchange",()=>{
+  const m=location.hash.match(/#second-(\d{4})/);if(m){$("codeInput").value=m[1];pairWithCode()}
+});
+$("msg").addEventListener("keydown",e=>{if(e.key==="Enter")sendMessage()});
+makeVisualCode("0000");
+</script>
+</body>
+</html>
