@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام الحضور والانصراف الاحترافي</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+    --primary:#1b8b6a;
+    --primary-dark:#0c6e55;
+    --primary-light:#e6f4f1;
+    --bg:#f3f4f6;
+    --card-bg:#ffffff;
+    --text-dark:#1f2937;
+    --text-light:#6b7280;
+    --border:#e5e7eb;
+    --danger:#e74c3c;
+    --warning:#e2a72e;
+    --sidebar:#ffffff;
+    --shadow:0 6px 22px rgba(20,55,50,.07);
+}
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Tajawal',sans-serif;
+}
+html,body{min-height:100%;background:var(--bg)}
+body{color:var(--text-dark)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app-shell{
+    min-height:100vh;
+    display:flex;
+    width:100%;
+}
+.desktop-sidebar{
+    width:250px;
+    flex:0 0 250px;
+    background:var(--sidebar);
+    border-left:1px solid var(--border);
+    padding:18px 14px;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow:auto;
+}
+.brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 8px 22px;
+}
+.brand-logo{
+    width:44px;height:44px;border-radius:14px;
+    background:linear-gradient(135deg,#1b8b6a,#23a681);
+    color:#fff;display:grid;place-items:center;
+    font-size:19px;box-shadow:0 8px 18px rgba(27,139,106,.18);
+}
+.brand h2{font-size:18px}
+.brand p{font-size:11px;color:var(--text-light);margin-top:2px}
+.side-nav{display:grid;gap:5px}
+.side-nav button{
+    border:none;background:transparent;color:#5d6872;
+    padding:12px 13px;border-radius:12px;text-align:right;
+    display:flex;align-items:center;gap:10px;
+}
+.side-nav button i{width:20px;text-align:center}
+.side-nav button.active,.side-nav button:hover{
+    background:var(--primary-light);color:var(--primary);font-weight:700;
+}
+.main{
+    flex:1;
+    min-width:0;
+    padding:20px;
+}
+.app-container{
+    width:100%;
+    max-width:1220px;
+    margin:0 auto;
+}
+.topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:18px;
+}
+.top-title h1{font-size:24px}
+.top-title p{font-size:12px;color:var(--text-light);margin-top:4px}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+    border:1px solid var(--border);
+    background:#fff;
+    color:var(--text-dark);
+    padding:10px 13px;
+    border-radius:11px;
+}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.danger{color:var(--danger);background:#fff0ed;border-color:#ffd4cb}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+
+.view-section{display:none;animation:fadeIn .22s ease}
+.view-section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.mobile-home{
+    max-width:450px;
+    margin:0 auto;
+}
+.header-profile{
+    display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;
+}
+.user-info{text-align:right}
+.user-info h3{font-size:18px}
+.user-info p{font-size:13px;color:var(--text-light)}
+.avatar{
+    width:50px;height:50px;border-radius:50%;background:#ddd;overflow:hidden;
+    display:grid;place-items:center;color:#888
+}
+.avatar i{font-size:24px}
+.status-card{
+    background:linear-gradient(135deg,#1b8b6a,#23a681);
+    border-radius:20px;padding:28px 18px;text-align:center;color:#fff;
+    margin-bottom:18px;box-shadow:0 10px 22px rgba(27,139,106,.2);
+}
+.status-card h2{font-size:20px;font-weight:500;margin-bottom:9px}
+.check-icon{
+    width:60px;height:60px;border-radius:50%;background:#fff;color:var(--primary);
+    display:flex;align-items:center;justify-content:center;font-size:25px;margin:0 auto 14px
+}
+.status-sub{font-size:12px;opacity:.95}
+.action-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px
+}
+.action-btn{
+    background:#fff;border:none;border-radius:15px;padding:18px 10px;text-align:center;
+    box-shadow:0 2px 10px rgba(0,0,0,.03);min-height:118px
+}
+.action-btn i{font-size:27px;color:var(--primary);margin-bottom:10px}
+.action-btn.out i{color:var(--danger)}
+.action-btn span{display:block;font-size:14px;font-weight:700}
+.action-btn small{font-weight:400;color:#666}
+.record-card{
+    background:#fff;border-radius:15px;padding:14px;margin-bottom:12px;display:flex;
+    justify-content:space-between;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,.03)
+}
+.icon-cont{
+    width:40px;height:40px;background:var(--primary-light);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;color:var(--primary);flex:none
+}
+.record-details h4{font-size:14px;margin-bottom:3px}
+.record-details p{font-size:12px;color:var(--text-light);line-height:1.7}
+.time-badge{font-weight:700;color:var(--text-dark);white-space:nowrap;font-size:13px}
+
+.panel{
+    background:#fff;border:1px solid var(--border);border-radius:16px;
+    box-shadow:var(--shadow);padding:18px;margin-bottom:16px
+}
+.panel-title{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px
+}
+.panel-title h3{font-size:16px}
+.panel-title p{font-size:11px;color:var(--text-light)}
+.stats{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px
+}
+.stat{
+    background:#fff;border:1px solid var(--border);border-radius:16px;padding:15px;
+    display:flex;justify-content:space-between;align-items:center
+}
+.stat .n{font-size:25px;font-weight:700}
+.stat .l{font-size:11px;color:var(--text-light);margin-top:3px}
+.stat .sicon{
+    width:44px;height:44px;background:var(--primary-light);color:var(--primary);
+    border-radius:13px;display:grid;place-items:center
+}
+.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:12px;font-weight:700;color:#586672}
+.form-control{
+    width:100%;padding:10px 11px;border:1px solid var(--border);border-radius:10px;
+    outline:none;background:#fff
+}
+.form-control:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(27,139,106,.09)}
+.days-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.day-chip{
+    border:1px solid var(--border);padding:8px 7px;border-radius:10px;
+    background:#fff;font-size:12px;display:flex;align-items:center;gap:5px
+}
+.table-responsive{
+    overflow:auto;background:#fff;border:1px solid var(--border);border-radius:13px
+}
+table{width:100%;border-collapse:collapse;min-width:760px;text-align:center}
+th,td{padding:11px 9px;border-bottom:1px solid var(--border);font-size:12px}
+th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
+.badge{
+    display:inline-flex;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700
+}
+.badge.ok{background:#e8f7f2;color:#0f7c60}
+.badge.late{background:#fff7df;color:#9b7300}
+.badge.absent{background:#ffefed;color:#c43e2d}
+.badge.info{background:#eef6ff;color:#2e64a4}
+.empty{text-align:center;color:#9aa2a9;font-size:13px;padding:25px}
+.notice{
+    background:#fff9e9;color:#7e6513;border:1px solid #f7e2a9;padding:11px 12px;
+    border-radius:11px;font-size:12px;line-height:1.75
+}
+.search-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.search-row .form-control{flex:1;min-width:180px}
+.export-btns{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.btn-export{
+    border:none;color:#fff;padding:10px 14px;border-radius:9px;font-weight:700
+}
+.btn-excel{background:#107c41}
+.btn-pdf{background:#e74c3c}
+.kpi-list{display:grid;gap:9px}
+.kpi{
+    background:#fff;border:1px solid var(--border);border-radius:13px;padding:12px;
+    display:flex;justify-content:space-between;align-items:center;gap:10px
+}
+.kpi b{font-size:13px}
+.kpi small{font-size:11px;color:var(--text-light)}
+.bottom-nav{
+    display:none;
+    position:fixed;bottom:10px;left:10px;right:10px;z-index:50;
+    background:#fff;border:1px solid var(--border);border-radius:18px;
+    padding:7px;box-shadow:0 -2px 18px rgba(0,0,0,.08)
+}
+.nav-item{
+    text-align:center;color:var(--text-light);cursor:pointer;transition:.25s;flex:1;padding:6px 2px
+}
+.nav-item i{font-size:18px;margin-bottom:4px;display:block}
+.nav-item span{font-size:10px;font-weight:700}
+.nav-item.active{color:var(--primary)}
+
+.modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.52);
+    justify-content:center;align-items:center;z-index:100;padding:14px
+}
+.modal-overlay.show{display:flex}
+.modal-content{
+    background:#fff;padding:24px;border-radius:20px;width:100%;max-width:480px;
+    text-align:center;max-height:92vh;overflow:auto
+}
+.fingerprint-icon{
+    width:82px;height:82px;border-radius:50%;margin:0 auto 15px;
+    display:grid;place-items:center;color:var(--primary);background:var(--primary-light);
+    font-size:42px
+}
+.modal-content h3{margin-bottom:7px}
+.modal-content p{font-size:12px;color:#6b7280;line-height:1.7}
+.bio-status{
+    margin-top:13px;padding:10px;border-radius:10px;font-size:12px;line-height:1.7
+}
+.bio-status.ok{background:#e9f8f2;color:#0f7c60}
+.bio-status.bad{background:#fff0ee;color:#c43c2f}
+.schedule-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.hidden{display:none!important}
+.muted{color:var(--text-light);font-size:12px}
+.header-actions{display:flex;gap:8px;align-items:center}
+.list-actions{display:flex;gap:6px;flex-wrap:wrap}
+.permission-card{
+    background:#f8fbfa;border:1px dashed #b6d9cf;border-radius:13px;
+    padding:12px;font-size:12px;color:#5c6c75;line-height:1.8
+}
+
+@media(max-width:900px){
+    .desktop-sidebar{display:none}
+    .main{padding:14px 14px 88px}
+    .topbar{align-items:flex-start}
+    .top-title h1{font-size:20px}
+    .bottom-nav{display:flex}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .grid2{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+    .main{padding:10px 10px 85px}
+    .topbar{flex-direction:column}
+    .top-actions{width:100%}
+    .top-actions .btn{flex:1}
+    .form-grid{grid-template-columns:1fr}
+    .days-grid{grid-template-columns:repeat(2,1fr)}
+    .stats{grid-template-columns:1fr 1fr;gap:9px}
+    .stat{padding:12px}
+    .stat .n{font-size:21px}
+    .panel{padding:14px}
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+<aside class="desktop-sidebar">
+    <div class="brand">
+        <div class="brand-logo"><i class="fas fa-fingerprint"></i></div>
+        <div>
+            <h2>حضور برو</h2>
+            <p>نظام الحضور والانصراف</p>
+        </div>
+    </div>
+
+    <div class="side-nav">
+        <button class="active" data-tab="view-home"><i class="fas fa-home"></i><span>الرئيسية</span></button>
+        <button data-tab="view-attendance"><i class="fas fa-user-check"></i><span>الحضور والانصراف</span></button>
+        <button data-tab="view-employees"><i class="fas fa-users-cog"></i><span>الموظفون والبصمات</span></button>
+        <button data-tab="view-schedules"><i class="fas fa-calendar-alt"></i><span>جداول الدوام</span></button>
+        <button data-tab="view-reports"><i class="fas fa-clipboard-list"></i><span>التقارير</span></button>
+        <button data-tab="view-settings"><i class="fas fa-cog"></i><span>الإعدادات</span></button>
+    </div>
+</aside>
+
+<main class="main">
+<div class="app-container">
+
+<div class="topbar">
+    <div class="top-title">
+        <h1 id="pageTitle">الرئيسية</h1>
+        <p id="todayLabel"></p>
+    </div>
+    <div class="top-actions">
+        <button class="btn" onclick="openScanner('in')"><i class="fas fa-fingerprint"></i> حضور بالبصمة</button>
+        <button class="btn primary" onclick="openEmployeeModal()"><i class="fas fa-user-plus"></i> إضافة موظف</button>
+    </div>
+</div>
+
+<!-- HOME -->
+<section id="view-home" class="view-section active">
+<div class="mobile-home">
+
+<div class="header-profile">
+    <i class="fas fa-bars" style="font-size:20px;color:var(--text-dark);"></i>
+    <div class="user-info">
+        <p>مرحباً بك في</p>
+        <h3>نظام تسجيل الدوام</h3>
+    </div>
+    <div class="avatar"><i class="fas fa-user"></i></div>
+</div>
+
+<div class="status-card">
+    <div class="check-icon"><i class="fas fa-check"></i></div>
+    <h2 id="homeStatusText">أنت الآن جاهز لتسجيل الحضور</h2>
+    <p class="status-sub" id="homeStatusSub">ضع إصبعك على مستشعر الجهاز لإكمال التحقق</p>
+</div>
+
+<div class="action-grid">
+    <button class="action-btn" onclick="openScanner('in')">
+        <i class="fas fa-fingerprint"></i>
+        <span>تسجيل الحضور<br><small>بصمة الدخول</small></span>
+    </button>
+    <button class="action-btn out" onclick="openScanner('out')">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>تسجيل الانصراف<br><small>بصمة الخروج</small></span>
+    </button>
+</div>
+
+<h3 style="font-size:16px;margin:18px 0 10px;">سجل اليوم المباشر</h3>
+<div id="todayRecordsArea"></div>
+
+</div>
+</section>
+
+<!-- ATTENDANCE -->
+<section id="view-attendance" class="view-section">
+<div class="stats">
+    <div class="stat"><div><div class="n" id="statEmployees">0</div><div class="l">الموظفون</div></div><div class="sicon"><i class="fas fa-users"></i></div></div>
+    <div class="stat"><div><div class="n" id="statPresent">0</div><div class="l">حضر اليوم</div></div><div class="sicon"><i class="fas fa-user-check"></i></div></div>
+    <div class="stat"><div><div class="n" id="statLate">0</div><div class="l">متأخر</div></div><div class="sicon"><i class="fas fa-clock"></i></div></div>
+    <div class="stat"><div><div class="n" id="statHours">0:00</div><div class="l">ساعات العمل</div></div><div class="sicon"><i class="fas fa-business-time"></i></div></div>
+</div>
+
+<div class="panel">
+    <div class="panel-title">
+        <div><h3>الحضور والانصراف</h3><p>التسجيل مربوط بالموعد الفعلي للموظف</p></div>
+        <div class="header-actions">
+            <input id="attendanceDate" class="form-control" type="date" style="width:auto">
+            <button class="btn primary" onclick="openScanner('in')"><i class="fas fa-fingerprint"></i></button>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead><tr><th>الموظف</th><th>الموعد</th><th>الدخول</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th><th>إجراء</th></tr></thead>
+            <tbody id="attendanceBody"></tbody>
+        </table>
+    </div>
+</div>
+</section>
+
+<!-- EMPLOYEES -->
+<section id="view-employees" class="view-section">
+<div class="panel">
+    <div class="panel-title">
+        <div><h3>سجل الموظفين والبصمات</h3><p>كل موظف له سجل بصمة منفصل</p></div>
+        <button class="btn primary" onclick="openEmployeeModal()"><i class="fas fa-user-plus"></i> موظف جديد</button>
+    </div>
+
+    <div class="permission-card">
+        <b>البصمة الفعلية:</b>
+        هذا الإصدار يستخدم WebAuthn/Passkey عند توفره. عند التسجيل أو الحضور سيظهر مستشعر البصمة/التعرف الحيوي في الهاتف أو اللابتوب. لا يتم إرسال صورة بصمة الإصبع إلى الصفحة؛ النظام يستلم نتيجة التحقق من الجهاز.
+        يفضّل تشغيل الصفحة على HTTPS أو localhost.
+    </div>
+
+    <div class="search-row" style="margin-top:12px">
+        <input id="employeeSearch" class="form-control" placeholder="بحث بالاسم أو الجوال..." oninput="renderEmployees()">
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead><tr><th>الموظف</th><th>الجوال</th><th>حالة البصمة</th><th>الدوام</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+            <tbody id="employeesBody"></tbody>
+        </table>
+    </div>
+</div>
+</section>
+
+<!-- SCHEDULES -->
+<section id="view-schedules" class="view-section">
+<div class="panel">
+    <div class="panel-title">
+        <div><h3>جداول الدوام والمواعيد</h3><p>شهر كامل / فترة / أسبوع / يوم بعد يوم / تواريخ مخصصة</p></div>
+        <button class="btn primary" onclick="openScheduleModal()"><i class="fas fa-calendar-plus"></i> جدول جديد</button>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead><tr><th>الموظف</th><th>النمط</th><th>الفترة</th><th>الأيام</th><th>الدخول</th><th>الانصراف</th><th>الإجراء</th></tr></thead>
+            <tbody id="schedulesBody"></tbody>
+        </table>
+    </div>
+</div>
+</section>
+
+<!-- REPORTS -->
+<section id="view-reports" class="view-section">
+<div class="panel">
+    <div class="panel-title"><div><h3>التقارير الشاملة</h3><p>الدخول والانصراف وساعات الدوام والغياب والتأخير</p></div></div>
+    <div class="form-grid" style="margin-bottom:12px">
+        <div class="form-group"><label>من تاريخ</label><input id="reportFrom" class="form-control" type="date"></div>
+        <div class="form-group"><label>إلى تاريخ</label><input id="reportTo" class="form-control" type="date"></div>
+    </div>
+    <div class="export-btns">
+        <button class="btn" onclick="renderReports()"><i class="fas fa-filter"></i> تحديث</button>
+        <button class="btn-export btn-excel" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn-export btn-pdf" onclick="exportToPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+    </div>
+    <div class="stats" style="margin-bottom:14px">
+        <div class="stat"><div><div class="n" id="rTotal">0</div><div class="l">السجلات</div></div><div class="sicon">📄</div></div>
+        <div class="stat"><div><div class="n" id="rPresent">0</div><div class="l">حضور</div></div><div class="sicon">✅</div></div>
+        <div class="stat"><div><div class="n" id="rAbsent">0</div><div class="l">غياب حسب الموعد</div></div><div class="sicon">❌</div></div>
+        <div class="stat"><div><div class="n" id="rHours">0:00</div><div class="l">إجمالي الساعات</div></div><div class="sicon">🕒</div></div>
+    </div>
+    <div class="table-responsive" id="reportPrintable">
+        <table id="reportsTable">
+            <thead><tr><th>الموظف</th><th>التاريخ</th><th>الموعد</th><th>الدخول</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th></tr></thead>
+            <tbody id="reportsBody"></tbody>
+        </table>
+    </div>
+</div>
+</section>
+
+<!-- SETTINGS -->
+<section id="view-settings" class="view-section">
+<div class="panel">
+    <div class="panel-title"><div><h3>الإعدادات</h3><p>قواعد السماح بالتسجيل والتأخير</p></div></div>
+    <div class="form-grid">
+        <div class="form-group"><label>اسم المنشأة</label><input id="settingCompany" class="form-control" placeholder="اسم الشركة"></div>
+        <div class="form-group"><label>السماح قبل الموعد بالدقائق</label><input id="settingBefore" class="form-control" type="number" min="0" value="15"></div>
+        <div class="form-group"><label>دقائق اعتبار الحضور متأخرًا</label><input id="settingLate" class="form-control" type="number" min="0" value="10"></div>
+        <div class="form-group"><label>منع التسجيل خارج الموعد</label><select id="settingStrict" class="form-control"><option value="1">مفعل</option><option value="0">غير مفعل</option></select></div>
+    </div>
+    <div class="top-actions" style="margin-top:12px"><button class="btn primary" onclick="saveSettings()">حفظ الإعدادات</button><button class="btn danger" onclick="resetAll()">مسح كل البيانات</button></div>
+</div>
+</section>
+
+</div>
+</main>
+
+<!-- MOBILE NAV -->
+<div class="bottom-nav">
+    <div class="nav-item active" data-tab="view-home"><i class="fas fa-home"></i><span>الرئيسية</span></div>
+    <div class="nav-item" data-tab="view-attendance"><i class="fas fa-user-check"></i><span>الحضور</span></div>
+    <div class="nav-item" data-tab="view-employees"><i class="fas fa-users"></i><span>الموظفون</span></div>
+    <div class="nav-item" data-tab="view-reports"><i class="fas fa-chart-bar"></i><span>التقارير</span></div>
+    <div class="nav-item" data-tab="view-settings"><i class="fas fa-cog"></i><span>الإعدادات</span></div>
+</div>
+</div>
+
+<!-- EMPLOYEE MODAL -->
+<div id="employeeModal" class="modal-overlay">
+<div class="modal-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+        <h3 id="employeeModalTitle">إضافة موظف جديد</h3>
+        <button class="btn" onclick="closeModal('employeeModal')">✕</button>
+    </div>
+    <div class="form-grid" style="text-align:right">
+        <div class="form-group"><label>اسم الموظف</label><input id="empName" class="form-control"></div>
+        <div class="form-group"><label>رقم الجوال</label><input id="empPhone" class="form-control" type="tel"></div>
+        <div class="form-group full"><label>ملاحظات</label><textarea id="empNotes" class="form-control" rows="2"></textarea></div>
+    </div>
+    <div class="permission-card" style="margin-top:12px;text-align:right">
+        بعد حفظ الموظف اضغط <b>تسجيل بصمة الموظف</b>. سيطلب الهاتف أو اللابتوب التحقق البيومتري من بصمة الإصبع/الوجه.
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn primary" style="flex:1" onclick="saveEmployee()">حفظ</button>
+        <button class="btn" style="flex:1" onclick="closeModal('employeeModal')">إلغاء</button>
+    </div>
+</div>
+</div>
+
+<!-- SCHEDULE MODAL -->
+<div id="scheduleModal" class="modal-overlay">
+<div class="modal-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+        <h3>إضافة جدول دوام</h3>
+        <button class="btn" onclick="closeModal('scheduleModal')">✕</button>
+    </div>
+    <div class="form-grid" style="text-align:right">
+        <div class="form-group"><label>الموظف</label><select id="scEmployee" class="form-control"></select></div>
+        <div class="form-group"><label>نوع الجدول</label>
+            <select id="scPattern" class="form-control" onchange="toggleScheduleFields()">
+                <option value="month">طول الشهر</option>
+                <option value="range">من تاريخ إلى تاريخ</option>
+                <option value="weekly">أيام محددة من الأسبوع</option>
+                <option value="alternate">يوم بعد يوم</option>
+                <option value="custom">تواريخ مخصصة</option>
+            </select>
+        </div>
+        <div class="form-group"><label>وقت الدخول</label><input id="scStart" class="form-control" type="time" value="08:00"></div>
+        <div class="form-group"><label>وقت الانصراف</label><input id="scEnd" class="form-control" type="time" value="16:00"></div>
+        <div class="form-group rangeField"><label>من تاريخ</label><input id="scFrom" class="form-control" type="date"></div>
+        <div class="form-group rangeField"><label>إلى تاريخ</label><input id="scTo" class="form-control" type="date"></div>
+        <div id="weekField" class="form-group full hidden"><label>أيام الأسبوع</label>
+            <div class="days-grid">
+                <label class="day-chip"><input class="dow" type="checkbox" value="0"> الأحد</label>
+                <label class="day-chip"><input class="dow" type="checkbox" value="1"> الاثنين</label>
+                <label class="day-chip"><input class="dow" type="checkbox" value="2"> الثلاثاء</label>
+                <label class="day-chip"><input class="dow" type="checkbox" value="3"> الأربعاء</label>
+                <label class="day-chip"><input class="dow" type="checkbox" value="4"> الخميس</label>
+                <label class="day-chip"><input class="dow" type="checkbox" value="5"> الجمعة</label>
+                <label class="day-chip"><input class="dow" type="checkbox" value="6"> السبت</label>
+            </div>
+        </div>
+        <div id="alternateField" class="form-group full hidden"><label>تاريخ بداية يوم بعد يوم</label><input id="scAltStart" class="form-control" type="date"></div>
+        <div id="customField" class="form-group full hidden"><label>تواريخ مخصصة</label><input id="scCustomDates" class="form-control" placeholder="2026-08-25,2026-08-28,2026-09-01"></div>
+    </div>
+    <div class="top-actions" style="margin-top:14px">
+        <button class="btn primary" style="flex:1" onclick="saveSchedule()">حفظ الجدول</button>
+        <button class="btn" style="flex:1" onclick="closeModal('scheduleModal')">إلغاء</button>
+    </div>
+</div>
+</div>
+
+<!-- BIOMETRIC MODAL -->
+<div id="scannerModal" class="modal-overlay">
+<div class="modal-content">
+    <div class="fingerprint-icon"><i class="fas fa-fingerprint"></i></div>
+    <h3 id="scannerTitle">التحقق بالبصمة</h3>
+    <p id="scannerHint">ضع إصبعك على مستشعر الجهاز أو استخدم طريقة التحقق البيومترية المتاحة.</p>
+
+    <div id="biometricStatus" class="bio-status" style="background:#f7f8f9;color:#66717a">
+        جاري تجهيز التحقق...
+    </div>
+
+    <div class="top-actions" style="margin-top:15px">
+        <button id="startBiometricBtn" class="btn primary" style="flex:1" onclick="startBiometric()">
+            <i class="fas fa-fingerprint"></i> بدء التحقق
+        </button>
+        <button class="btn" style="flex:1" onclick="closeModal('scannerModal')">إلغاء</button>
+    </div>
+
+    <div id="manualFallback" class="hidden" style="margin-top:14px;text-align:right">
+        <div class="notice">
+            جهازك أو المتصفح لا يوفر WebAuthn في هذه البيئة. لا يمكن للـHTML وحده قراءة بصمة الإصبع الخام.
+            يمكنك تشغيل الصفحة على HTTPS/localhost أو ربطها بجهاز بصمة يدعم API.
+        </div>
+        <div class="form-group" style="margin-top:10px">
+            <label>معرف الموظف كحل احتياطي</label>
+            <input id="manualEmployeeId" class="form-control" placeholder="معرف الموظف">
+        </div>
+        <button class="btn" style="width:100%;margin-top:8px" onclick="manualAttendance()">تسجيل بالمعرف</button>
+    </div>
+</div>
+</div>
+
+<script>
+/* =========================
+   DATA
+========================= */
+const DB_KEY='attendance_biometrics_v2';
+let db=JSON.parse(localStorage.getItem(DB_KEY)||'null') || {
+    employees:[],
+    schedules:[],
+    attendance:[],
+    settings:{company:'منشأتك',before:15,late:10,strict:1}
+};
+let editingEmployeeId=null;
+let currentScanType='in';
+
+/* =========================
+   HELPERS
+========================= */
+function saveDB(){localStorage.setItem(DB_KEY,JSON.stringify(db))}
+function id(p='id'){return p+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)}
+function today(){
+    const d=new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function nowTime(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function mins(t){if(!t)return 0;const [h,m]=t.split(':').map(Number);return h*60+m}
+function duration(a){
+    if(!a?.checkIn)return 0;
+    const end=a.checkOut||nowTime();
+    let d=mins(end)-mins(a.checkIn);
+    if(d<0)d+=1440;
+    return d;
+}
+function hoursText(m){m=Math.max(0,Math.round(m||0));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')}
+function dateText(s){return new Date(s+'T00:00:00').toLocaleDateString('ar-PS',{year:'numeric',month:'2-digit',day:'2-digit'})}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function empById(v){return db.employees.find(e=>e.id===v)}
+function badge(s){
+    if(s==='present')return '<span class="badge ok">حاضر</span>';
+    if(s==='late')return '<span class="badge late">متأخر</span>';
+    if(s==='absent')return '<span class="badge absent">غائب</span>';
+    if(s==='outside')return '<span class="badge absent">خارج الموعد</span>';
+    if(s==='open')return '<span class="badge info">داخل الدوام</span>';
+    return '<span class="badge info">جاهز</span>';
+}
+
+/* =========================
+   NAVIGATION
+========================= */
+const pageNames={
+    'view-home':'الرئيسية',
+    'view-attendance':'الحضور والانصراف',
+    'view-employees':'الموظفون والبصمات',
+    'view-schedules':'جداول الدوام',
+    'view-reports':'التقارير',
+    'view-settings':'الإعدادات'
+};
+function switchTab(tabId,el){
+    document.querySelectorAll('.view-section').forEach(x=>x.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+
+    document.querySelectorAll('.nav-item,.side-nav button').forEach(x=>x.classList.toggle('active',x.dataset.tab===tabId));
+    document.getElementById('pageTitle').textContent=pageNames[tabId]||'الرئيسية';
+
+    if(tabId==='view-home')renderTodayRecords();
+    if(tabId==='view-attendance')renderAttendance();
+    if(tabId==='view-employees')renderEmployees();
+    if(tabId==='view-schedules')renderSchedules();
+    if(tabId==='view-reports')renderReports();
+}
+document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>switchTab(el.dataset.tab,el)));
+
+/* =========================
+   SCHEDULE LOGIC
+========================= */
+function scheduleApplies(s,date){
+    if(date<(s.from||'0000-01-01') || date>(s.to||'9999-12-31'))return false;
+    const d=new Date(date+'T00:00:00');
+    const dow=d.getDay();
+
+    if(s.pattern==='month' || s.pattern==='range')return true;
+    if(s.pattern==='weekly')return (s.days||[]).map(Number).includes(dow);
+
+    if(s.pattern==='alternate'){
+        const start=new Date((s.altStart||date)+'T00:00:00');
+        const cur=new Date(date+'T00:00:00');
+        const diff=Math.floor((cur-start)/86400000);
+        return diff>=0 && diff%2===0;
+    }
+
+    if(s.pattern==='custom')return (s.customDates||[]).includes(date);
+    return false;
+}
+function schedulesFor(empId,date){
+    return db.schedules.filter(s=>s.employeeId===empId&&scheduleApplies(s,date));
+}
+function currentSchedule(empId,date,time){
+    const list=schedulesFor(empId,date);
+    const t=mins(time);
+    return list.find(s=>t>=mins(s.start)-Number(db.settings.before||0) && t<=mins(s.end)+120) || list[0] || null;
+}
+function isDue(empId,date){return schedulesFor(empId,date).length>0}
+
+/* =========================
+   HOME / DASHBOARD
+========================= */
+function renderTodayRecords(){
+    const d=today();
+    const area=document.getElementById('todayRecordsArea');
+    const due=db.employees.filter(e=>e.active!==false && isDue(e.id,d));
+    let rows='';
+
+    due.forEach(e=>{
+        const a=db.attendance.find(x=>x.employeeId===e.id&&x.date===d);
+        const s=schedulesFor(e.id,d)[0];
+        rows+=`
+        <div class="record-card">
+            <div style="display:flex;align-items:center;gap:11px">
+                <div class="icon-cont"><i class="fas fa-user-check"></i></div>
+                <div class="record-details">
+                    <h4>${esc(e.name)}</h4>
+                    <p>موعد: ${s?.start||'--:--'} - ${s?.end||'--:--'}<br>
+                    حضور: ${a?.checkIn||'--:--'} | انصراف: ${a?.checkOut||'--:--'}</p>
+                </div>
+            </div>
+            <div>${badge(a?.status||'absent')}</div>
+        </div>`;
+    });
+
+    area.innerHTML=rows||'<div class="empty">لا يوجد موظفون بموعد اليوم.</div>';
+
+    let present=0,late=0,h=0;
+    due.forEach(e=>{
+        const a=db.attendance.find(x=>x.employeeId===e.id&&x.date===d);
+        if(a){present++;if(a.status==='late')late++;h+=duration(a)}
+    });
+    document.getElementById('statEmployees').textContent=db.employees.filter(e=>e.active!==false).length;
+    document.getElementById('statPresent').textContent=present;
+    document.getElementById('statLate').textContent=late;
+    document.getElementById('statHours').textContent=hoursText(h);
+
+    const anyAbsent=due.length-present;
+    document.getElementById('homeStatusText').textContent=anyAbsent>0?'أنت الآن جاهز لتسجيل الحضور':'الحضور اليوم محدث';
+    document.getElementById('homeStatusSub').textContent=anyAbsent>0?'استخدم بصمة الإصبع لتسجيل الموظف صاحب الموعد':'تم تحديث سجلات اليوم';
+}
+
+/* =========================
+   EMPLOYEES
+========================= */
+function openEmployeeModal(idv=null){
+    editingEmployeeId=idv;
+    const e=idv?empById(idv):null;
+    document.getElementById('employeeModalTitle').textContent=e?'تعديل موظف':'إضافة موظف جديد';
+    document.getElementById('empName').value=e?.name||'';
+    document.getElementById('empPhone').value=e?.phone||'';
+    document.getElementById('empNotes').value=e?.notes||'';
+    document.getElementById('employeeModal').classList.add('show');
+}
+function closeModal(idv){document.getElementById(idv).classList.remove('show')}
+function saveEmployee(){
+    const name=document.getElementById('empName').value.trim();
+    if(!name)return alert('أدخل اسم الموظف');
+
+    if(editingEmployeeId){
+        const e=empById(editingEmployeeId);
+        Object.assign(e,{
+            name,
+            phone:document.getElementById('empPhone').value.trim(),
+            notes:document.getElementById('empNotes').value.trim()
+        });
+    }else{
+        db.employees.push({
+            id:id('emp'),
+            name,
+            phone:document.getElementById('empPhone').value.trim(),
+            notes:document.getElementById('empNotes').value.trim(),
+            active:true,
+            biometric:null,
+            createdAt:new Date().toISOString()
+        });
+    }
+
+    saveDB();
+    closeModal('employeeModal');
+    renderEmployees();
+    renderTodayRecords();
+    alert('تم حفظ الموظف بنجاح');
+}
+function renderEmployees(){
+    const q=(document.getElementById('employeeSearch').value||'').toLowerCase().trim();
+    const list=db.employees.filter(e=>!q || e.name.toLowerCase().includes(q) || (e.phone||'').includes(q));
+
+    document.getElementById('employeesBody').innerHTML=list.map(e=>{
+        const schedules=db.schedules.filter(s=>s.employeeId===e.id).length;
+        const bio=e.biometric?'<span class="badge ok">مسجلة</span>':'<span class="badge absent">غير مسجلة</span>';
+        return `<tr>
+            <td><b>${esc(e.name)}</b></td>
+            <td>${esc(e.phone||'-')}</td>
+            <td>${bio}</td>
+            <td>${schedules} جدول</td>
+            <td>${e.active!==false?'<span class="badge ok">نشط</span>':'<span class="badge absent">موقوف</span>'}</td>
+            <td>
+                <div class="list-actions">
+                    <button class="btn" onclick="enrollBiometric('${e.id}')"><i class="fas fa-fingerprint"></i> تسجيل بصمة</button>
+                    <button class="btn" onclick="openEmployeeModal('${e.id}')">تعديل</button>
+                    <button class="btn danger" onclick="deleteEmployee('${e.id}')">حذف</button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="6" class="empty">لا يوجد موظفون</td></tr>';
+}
+async function enrollBiometric(employeeId){
+    const e=empById(employeeId);
+    if(!e)return;
+
+    if(!window.PublicKeyCredential){
+        alert('هذا المتصفح/الجهاز لا يدعم WebAuthn. لتسجيل بصمة فعلية استخدم Chrome/Safari/Edge حديث وعلى HTTPS أو localhost.');
+        return;
+    }
+
+    try{
+        const supported = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
+        if(supported===false){
+            alert('لا يوجد مستشعر بصمة/تحقق حيوي متاح من الجهاز أو تم تعطيله.');
+            return;
+        }
+
+        const userId=new Uint8Array(16);
+        crypto.getRandomValues(userId);
+
+        const publicKey={
+            challenge:crypto.getRandomValues(new Uint8Array(32)),
+            rp:{name:db.settings.company||'نظام الحضور والانصراف'},
+            user:{
+                id:userId,
+                name:(e.phone||e.id),
+                displayName:e.name
+            },
+            pubKeyCredParams:[
+                {type:'public-key',alg:-7},
+                {type:'public-key',alg:-257}
+            ],
+            authenticatorSelection:{
+                authenticatorAttachment:'platform',
+                userVerification:'required',
+                residentKey:'preferred'
+            },
+            timeout:60000,
+            attestation:'none'
+        };
+
+        const credential=await navigator.credentials.create({publicKey});
+        if(!credential)throw new Error('لم يتم إنشاء الاعتماد');
+
+        e.biometric={
+            credentialId:bytesToBase64Url(new Uint8Array(credential.rawId)),
+            createdAt:new Date().toISOString(),
+            type:'platform-biometric'
+        };
+        saveDB();
+        renderEmployees();
+        alert(`تم تسجيل بصمة ${e.name} بنجاح على هذا الجهاز/المتصفح.`);
+    }catch(err){
+        console.error(err);
+        alert('تعذر تسجيل البصمة. تأكد من السماح بالبصمة وأن الصفحة تعمل على HTTPS أو localhost.');
+    }
+}
+function deleteEmployee(idv){
+    if(!confirm('حذف الموظف وسجلاته وجداول دوامه؟'))return;
+    db.employees=db.employees.filter(e=>e.id!==idv);
+    db.schedules=db.schedules.filter(s=>s.employeeId!==idv);
+    db.attendance=db.attendance.filter(a=>a.employeeId!==idv);
+    saveDB();renderEmployees();renderSchedules();renderTodayRecords();
+}
+
+/* =========================
+   SCHEDULES
+========================= */
+function openScheduleModal(){
+    const select=document.getElementById('scEmployee');
+    select.innerHTML=db.employees.filter(e=>e.active!==false).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+    document.getElementById('scFrom').value=today();
+    document.getElementById('scTo').value=today();
+    document.getElementById('scAltStart').value=today();
+    document.getElementById('scCustomDates').value='';
+    document.querySelectorAll('.dow').forEach(x=>x.checked=false);
+    document.getElementById('scPattern').value='month';
+    toggleScheduleFields();
+    document.getElementById('scheduleModal').classList.add('show');
+}
+function toggleScheduleFields(){
+    const p=document.getElementById('scPattern').value;
+    document.querySelectorAll('.rangeField').forEach(x=>x.classList.toggle('hidden',p!=='month'&&p!=='range'));
+    document.getElementById('weekField').classList.toggle('hidden',p!=='weekly');
+    document.getElementById('alternateField').classList.toggle('hidden',p!=='alternate');
+    document.getElementById('customField').classList.toggle('hidden',p!=='custom');
+}
+function saveSchedule(){
+    const pattern=document.getElementById('scPattern').value;
+    const days=[...document.querySelectorAll('.dow:checked')].map(x=>x.value);
+    const custom=document.getElementById('scCustomDates').value.split(',').map(x=>x.trim()).filter(Boolean);
+
+    if(!document.getElementById('scEmployee').value)return alert('أضف موظفاً أولاً');
+    if(!document.getElementById('scStart').value||!document.getElementById('scEnd').value)return alert('حدد وقت الدخول والانصراف');
+    if(pattern==='weekly'&&!days.length)return alert('حدد أيام الأسبوع');
+    if(pattern==='custom'&&!custom.length)return alert('أدخل تواريخ مخصصة');
+
+    const s={
+        id:id('sch'),
+        employeeId:document.getElementById('scEmployee').value,
+        pattern,
+        start:document.getElementById('scStart').value,
+        end:document.getElementById('scEnd').value,
+        from:document.getElementById('scFrom').value,
+        to:document.getElementById('scTo').value,
+        days,
+        altStart:document.getElementById('scAltStart').value,
+        customDates:custom
+    };
+
+    db.schedules.push(s);
+    saveDB();closeModal('scheduleModal');renderSchedules();renderTodayRecords();
+    alert('تم حفظ جدول الدوام');
+}
+function renderSchedules(){
+    const dayName=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    document.getElementById('schedulesBody').innerHTML=db.schedules.map(s=>{
+        const e=empById(s.employeeId);
+        const days=(s.days||[]).map(d=>dayName[Number(d)]).join('، ');
+        const p={month:'طول الشهر',range:'فترة محددة',weekly:'أيام أسبوعية',alternate:'يوم بعد يوم',custom:'تواريخ مخصصة'}[s.pattern];
+        return `<tr>
+            <td>${esc(e?.name||'محذوف')}</td><td>${p}</td>
+            <td>${s.from||'-'} → ${s.to||'-'}</td>
+            <td>${days||((s.customDates||[]).join('، ')||'يومي')}</td>
+            <td>${s.start}</td><td>${s.end}</td>
+            <td><button class="btn danger" onclick="deleteSchedule('${s.id}')">حذف</button></td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="7" class="empty">لا توجد جداول</td></tr>';
+}
+function deleteSchedule(idv){
+    if(!confirm('حذف جدول الدوام؟'))return;
+    db.schedules=db.schedules.filter(x=>x.id!==idv);
+    saveDB();renderSchedules();renderTodayRecords();
+}
+
+/* =========================
+   ATTENDANCE
+========================= */
+document.getElementById('attendanceDate').value=today();
+document.getElementById('attendanceDate').addEventListener('change',renderAttendance);
+
+function getRecord(empId,date){return db.attendance.find(a=>a.employeeId===empId&&a.date===date)}
+function setCheckIn(empId){
+    const date=today(), time=nowTime(), emp=empById(empId);
+    if(!emp)return;
+
+    const schedule=currentSchedule(empId,date,time);
+    if(!schedule && Number(db.settings.strict)===1){
+        return {ok:false,msg:'لا يمكن التسجيل: لا يوجد للموظف موعد صالح الآن.'};
+    }
+
+    let a=getRecord(empId,date);
+    if(a?.checkIn)return {ok:false,msg:'تم تسجيل الدخول مسبقاً اليوم.'};
+
+    if(!a){
+        a={id:id('att'),employeeId:empId,date,checkIn:null,checkOut:null,totalMinutes:0,status:null,scheduleId:null};
+        db.attendance.push(a);
+    }
+
+    a.checkIn=time;
+    a.scheduleId=schedule?.id||null;
+    a.scheduledStart=schedule?.start||null;
+    a.scheduledEnd=schedule?.end||null;
+    a.status=schedule && mins(time)>mins(schedule.start)+Number(db.settings.late||10) ? 'late' : (schedule?'present':'outside');
+
+    saveDB();
+    return {ok:true,msg:`تم تسجيل دخول ${emp.name} الساعة ${time}`};
+}
+function setCheckOut(empId){
+    const date=today(),time=nowTime();
+    const a=getRecord(empId,date);
+    if(!a?.checkIn)return {ok:false,msg:'يجب تسجيل الحضور أولاً.'};
+    if(a.checkOut)return {ok:false,msg:'تم تسجيل الانصراف مسبقاً.'};
+
+    a.checkOut=time;
+    a.totalMinutes=duration(a);
+    saveDB();
+    return {ok:true,msg:`تم تسجيل انصراف ${empById(empId)?.name||''} الساعة ${time}`};
+}
+function renderAttendance(){
+    const d=document.getElementById('attendanceDate').value||today();
+    const list=db.employees.filter(e=>e.active!==false&&isDue(e.id,d));
+    document.getElementById('attendanceBody').innerHTML=list.map(e=>{
+        const s=schedulesFor(e.id,d)[0];
+        const a=getRecord(e.id,d);
+        return `<tr>
+            <td>${esc(e.name)}</td>
+            <td>${s.start} - ${s.end}</td>
+            <td>${a?.checkIn||'-'}</td>
+            <td>${a?.checkOut||'-'}</td>
+            <td>${hoursText(duration(a))}</td>
+            <td>${badge(a?.status||'absent')}</td>
+            <td>${a?.checkIn&&!a?.checkOut
+                ?`<button class="btn" onclick="quickAttendance('${e.id}','out')">انصراف</button>`
+                :`<button class="btn primary" onclick="quickAttendance('${e.id}','in')">حضور</button>`}
+            </td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="7" class="empty">لا توجد مواعيد في التاريخ المحدد</td></tr>';
+
+    let present=0,late=0,h=0;
+    list.forEach(e=>{
+        const a=getRecord(e.id,d);
+        if(a){present++;if(a.status==='late')late++;h+=duration(a)}
+    });
+    document.getElementById('statPresent').textContent=present;
+    document.getElementById('statLate').textContent=late;
+    document.getElementById('statHours').textContent=hoursText(h);
+    document.getElementById('statEmployees').textContent=db.employees.filter(e=>e.active!==false).length;
+}
+async function quickAttendance(empId,type){
+    currentScanType=type;
+    const e=empById(empId);
+    if(!e?.biometric){
+        alert('هذا الموظف لم يسجل بصمته بعد. سجّل البصمة من قائمة الموظفين أولاً.');
+        return;
+    }
+    openScanner(type,empId);
+}
+
+/* =========================
+   REAL DEVICE BIOMETRIC (WebAuthn)
+========================= */
+let preferredEmployeeId=null;
+
+function base64UrlToBytes(base64url){
+    const pad='='.repeat((4-base64url.length%4)%4);
+    const b64=(base64url+pad).replace(/-/g,'+').replace(/_/g,'/');
+    const raw=atob(b64);
+    return Uint8Array.from(raw,c=>c.charCodeAt(0));
+}
+function bytesToBase64Url(bytes){
+    let s='';
+    bytes.forEach(b=>s+=String.fromCharCode(b));
+    return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function browserSupportsBiometric(){
+    return !!window.PublicKeyCredential &&
+        window.isSecureContext;
+}
+async function openScanner(type,employeeId=null){
+    currentScanType=type;
+    preferredEmployeeId=employeeId;
+
+    document.getElementById('scannerTitle').textContent=type==='in'?'تسجيل الحضور بالبصمة':'تسجيل الانصراف بالبصمة';
+    document.getElementById('biometricStatus').className='bio-status';
+    document.getElementById('biometricStatus').style.background='#f7f8f9';
+    document.getElementById('biometricStatus').style.color='#66717a';
+
+    if(browserSupportsBiometric()){
+        document.getElementById('biometricStatus').textContent='جاهز للتحقق البيومتري من الجهاز.';
+        document.getElementById('manualFallback').classList.add('hidden');
+    }else{
+        document.getElementById('biometricStatus').innerHTML='WebAuthn غير متاح في هذه البيئة. استخدم HTTPS أو localhost.';
+        document.getElementById('manualFallback').classList.remove('hidden');
+    }
+
+    document.getElementById('scannerModal').classList.add('show');
+}
+async function startBiometric(){
+    if(!browserSupportsBiometric()){
+        document.getElementById('manualFallback').classList.remove('hidden');
+        return;
+    }
+
+    const employeesWithBio=db.employees.filter(e=>e.active!==false&&e.biometric?.credentialId);
+    if(!employeesWithBio.length){
+        alert('لا توجد بصمة مسجلة لأي موظف. سجّل بصمة من صفحة الموظفين أولاً.');
+        return;
+    }
+
+    try{
+        const allow=employeesWithBio
+            .filter(e=>!preferredEmployeeId || e.id===preferredEmployeeId || true)
+            .map(e=>({
+                type:'public-key',
+                id:base64UrlToBytes(e.biometric.credentialId)
+            }));
+
+        document.getElementById('biometricStatus').className='bio-status ok';
+        document.getElementById('biometricStatus').textContent='ضع إصبعك على مستشعر الجهاز...';
+
+        const assertion=await navigator.credentials.get({
+            publicKey:{
+                challenge:crypto.getRandomValues(new Uint8Array(32)),
+                allowCredentials:allow,
+                userVerification:'required',
+                timeout:60000
+            }
+        });
+
+        if(!assertion)throw new Error('لم يتم التحقق');
+
+        const credentialId=bytesToBase64Url(new Uint8Array(assertion.rawId));
+        const employee=employeesWithBio.find(e=>e.biometric.credentialId===credentialId);
+
+        if(!employee){
+            document.getElementById('biometricStatus').className='bio-status bad';
+            document.getElementById('biometricStatus').textContent='تم التحقق، لكن لم يتم التعرف على الموظف.';
+            return;
+        }
+
+        const result=currentScanType==='in'?setCheckIn(employee.id):setCheckOut(employee.id);
+
+        if(!result.ok){
+            document.getElementById('biometricStatus').className='bio-status bad';
+            document.getElementById('biometricStatus').textContent=result.msg;
+            return;
+        }
+
+        document.getElementById('biometricStatus').className='bio-status ok';
+        document.getElementById('biometricStatus').textContent=result.msg;
+
+        renderTodayRecords();
+        renderAttendance();
+        closeModal('scannerModal');
+
+        setTimeout(()=>alert(result.msg),120);
+    }catch(err){
+        console.error(err);
+        document.getElementById('biometricStatus').className='bio-status bad';
+        document.getElementById('biometricStatus').textContent='تعذر التحقق بالبصمة. تأكد من قفل/فتح الجهاز والسماح بالتحقق البيومتري.';
+    }
+}
+function manualAttendance(){
+    const empId=document.getElementById('manualEmployeeId').value.trim();
+    if(!empId)return alert('اكتب معرف الموظف');
+    const e=empById(empId);
+    if(!e)return alert('معرف الموظف غير موجود');
+
+    const result=currentScanType==='in'?setCheckIn(empId):setCheckOut(empId);
+    if(!result.ok)return alert(result.msg);
+
+    renderTodayRecords();renderAttendance();closeModal('scannerModal');
+    alert(result.msg);
+}
+
+/* =========================
+   REPORTS / EXPORT
+========================= */
+function getDateRange(){
+    return {
+        from:document.getElementById('reportFrom').value||today(),
+        to:document.getElementById('reportTo').value||today()
+    };
+}
+function buildReportRows(){
+    const {from,to}=getDateRange();
+    const rows=[];
+    const start=new Date(from+'T00:00:00');
+    const end=new Date(to+'T00:00:00');
+
+    for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+        const date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        db.employees.filter(e=>e.active!==false).forEach(e=>{
+            const sc=schedulesFor(e.id,date)[0];
+            if(!sc)return;
+            const a=getRecord(e.id,date);
+            rows.push({
+                employee:e,
+                date,
+                schedule:sc,
+                record:a,
+                status:a?.status||'absent'
+            });
+        });
+    }
+    return rows;
+}
+function renderReports(){
+    const rows=buildReportRows();
+    let present=0,absent=0,hours=0;
+
+    document.getElementById('reportsBody').innerHTML=rows.map(x=>{
+        if(x.record){present++;hours+=duration(x.record)}
+        else absent++;
+        return `<tr>
+            <td>${esc(x.employee.name)}</td>
+            <td>${dateText(x.date)}</td>
+            <td>${x.schedule.start} - ${x.schedule.end}</td>
+            <td>${x.record?.checkIn||'-'}</td>
+            <td>${x.record?.checkOut||'-'}</td>
+            <td>${hoursText(duration(x.record))}</td>
+            <td>${badge(x.status)}</td>
+        </tr>`;
+    }).join('')||'<tr><td colspan="7" class="empty">لا توجد بيانات للتقرير</td></tr>';
+
+    document.getElementById('rTotal').textContent=rows.length;
+    document.getElementById('rPresent').textContent=present;
+    document.getElementById('rAbsent').textContent=absent;
+    document.getElementById('rHours').textContent=hoursText(hours);
+}
+function exportToExcel(){
+    const rows=buildReportRows().map(x=>({
+        'اسم الموظف':x.employee.name,
+        'رقم الجوال':x.employee.phone||'',
+        'التاريخ':x.date,
+        'وقت الدوام':`${x.schedule.start} - ${x.schedule.end}`,
+        'وقت الحضور':x.record?.checkIn||'لم يسجل',
+        'وقت الانصراف':x.record?.checkOut||'لم يسجل',
+        'ساعات العمل':hoursText(duration(x.record)),
+        'الحالة':x.status==='late'?'متأخر':x.status==='present'?'حاضر':'غائب'
+    }));
+    if(!rows.length)return alert('لا توجد بيانات');
+    const ws=XLSX.utils.json_to_sheet(rows);
+    ws['!dir']='rtl';
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'سجل الحضور');
+    XLSX.writeFile(wb,'تقرير_الحضور_والانصراف.xlsx');
+}
+async function exportToPDF(){
+    renderReports();
+    const area=document.getElementById('reportPrintable');
+    const canvas=await html2canvas(area,{scale:1.4,backgroundColor:'#ffffff'});
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF('p','mm','a4');
+    const pageWidth=210, margin=8;
+    const imgWidth=pageWidth-margin*2;
+    const imgHeight=canvas.height*imgWidth/canvas.width;
+    pdf.setFontSize(12);
+    pdf.text('Attendance & Departure Report',pageWidth-margin,12,{align:'right'});
+    pdf.addImage(canvas.toDataURL('image/png'),'PNG',margin,18,imgWidth,imgHeight);
+    pdf.save('تقرير_الحضور_والانصراف.pdf');
+}
+
+/* =========================
+   SETTINGS
+========================= */
+function loadSettings(){
+    document.getElementById('settingCompany').value=db.settings.company||'';
+    document.getElementById('settingBefore').value=db.settings.before??15;
+    document.getElementById('settingLate').value=db.settings.late??10;
+    document.getElementById('settingStrict').value=String(db.settings.strict??1);
+}
+function saveSettings(){
+    db.settings.company=document.getElementById('settingCompany').value.trim()||'منشأتك';
+    db.settings.before=Number(document.getElementById('settingBefore').value||15);
+    db.settings.late=Number(document.getElementById('settingLate').value||10);
+    db.settings.strict=Number(document.getElementById('settingStrict').value||1);
+    saveDB();
+    alert('تم حفظ الإعدادات');
+    renderTodayRecords();
+}
+function resetAll(){
+    if(!confirm('سيتم حذف الموظفين والبصمات والجداول والحضور نهائياً من هذا المتصفح. هل أنت متأكد؟'))return;
+    db={employees:[],schedules:[],attendance:[],settings:{company:'منشأتك',before:15,late:10,strict:1}};
+    saveDB();
+    renderAll();
+}
+
+/* =========================
+   INIT
+========================= */
+document.getElementById('todayLabel').textContent=
+    new Date().toLocaleDateString('ar-PS',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('reportFrom').value=today();
+document.getElementById('reportTo').value=today();
+
+function renderAll(){
+    renderTodayRecords();
+    renderAttendance();
+    renderEmployees();
+    renderSchedules();
+    renderReports();
+    loadSettings();
+}
+renderAll();
+</script>
+
+</body>
+</html>
