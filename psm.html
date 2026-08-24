@@ -405,9 +405,11 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
     </div>
 
     <div class="permission-card">
-        <b>البصمة الفعلية:</b>
-        هذا الإصدار يستخدم WebAuthn/Passkey عند توفره. عند التسجيل أو الحضور سيظهر مستشعر البصمة/التعرف الحيوي في الهاتف أو اللابتوب. لا يتم إرسال صورة بصمة الإصبع إلى الصفحة؛ النظام يستلم نتيجة التحقق من الجهاز.
-        يفضّل تشغيل الصفحة على HTTPS أو localhost.
+        <b>نظام البصمة لكل موظف:</b>
+        لكل موظف يتم إنشاء <b>اعتماد WebAuthn مستقل</b> وحفظ معرفه داخل سجل الموظف. عند الحضور يحدد النظام اعتماد الموظف ثم يطلب بصمة الجهاز للتحقق.
+        <br><br>
+        <b>تنبيه مهم:</b> المتصفح لا يسمح لصفحة HTML بأخذ قالب بصمة الإصبع الخام أو معرفة أي إصبع/شخص فتح مستشعر الهاتف. لذلك التخزين يكون للـWebAuthn Credential الخاص بكل موظف، وليس صورة البصمة.
+        يفضّل تشغيل النظام على HTTPS أو localhost.
     </div>
 
     <div class="search-row" style="margin-top:12px">
@@ -527,17 +529,18 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
         <div class="form-group"><label>الموظف</label><select id="scEmployee" class="form-control"></select></div>
         <div class="form-group"><label>نوع الجدول</label>
             <select id="scPattern" class="form-control" onchange="toggleScheduleFields()">
-                <option value="month">طول الشهر</option>
+                <option value="month">طول شهر محدد</option>
                 <option value="range">من تاريخ إلى تاريخ</option>
                 <option value="weekly">أيام محددة من الأسبوع</option>
                 <option value="alternate">يوم بعد يوم</option>
                 <option value="custom">تواريخ مخصصة</option>
             </select>
         </div>
+        <div id="monthField" class="form-group"><label>الشهر</label><input id="scMonth" class="form-control" type="month"></div>
         <div class="form-group"><label>وقت الدخول</label><input id="scStart" class="form-control" type="time" value="08:00"></div>
         <div class="form-group"><label>وقت الانصراف</label><input id="scEnd" class="form-control" type="time" value="16:00"></div>
-        <div class="form-group rangeField"><label>من تاريخ</label><input id="scFrom" class="form-control" type="date"></div>
-        <div class="form-group rangeField"><label>إلى تاريخ</label><input id="scTo" class="form-control" type="date"></div>
+        <div class="form-group rangeField hidden"><label>من تاريخ</label><input id="scFrom" class="form-control" type="date"></div>
+        <div class="form-group rangeField hidden"><label>إلى تاريخ</label><input id="scTo" class="form-control" type="date"></div>
         <div id="weekField" class="form-group full hidden"><label>أيام الأسبوع</label>
             <div class="days-grid">
                 <label class="day-chip"><input class="dow" type="checkbox" value="0"> الأحد</label>
@@ -564,7 +567,7 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
 <div class="modal-content">
     <div class="fingerprint-icon"><i class="fas fa-fingerprint"></i></div>
     <h3 id="scannerTitle">التحقق بالبصمة</h3>
-    <p id="scannerHint">ضع إصبعك على مستشعر الجهاز أو استخدم طريقة التحقق البيومترية المتاحة.</p>
+    <p id="scannerHint">سيتم التحقق من اعتماد الموظف المخزن ثم يطلب الجهاز بصمة الإصبع. النظام لا يستقبل قالب البصمة الخام من الهاتف.</p>
 
     <div id="biometricStatus" class="bio-status" style="background:#f7f8f9;color:#66717a">
         جاري تجهيز التحقق...
@@ -689,7 +692,12 @@ function schedulesFor(empId,date){
 function currentSchedule(empId,date,time){
     const list=schedulesFor(empId,date);
     const t=mins(time);
-    return list.find(s=>t>=mins(s.start)-Number(db.settings.before||0) && t<=mins(s.end)+120) || list[0] || null;
+    const before=Number(db.settings.before||0);
+    const candidates=list.filter(s=>{
+        const start=mins(s.start), end=mins(s.end);
+        return t>=start-before && t<=end+120;
+    });
+    return candidates[0]||null;
 }
 function isDue(empId,date){return schedulesFor(empId,date).length>0}
 
@@ -719,7 +727,7 @@ function renderTodayRecords(){
         </div>`;
     });
 
-    area.innerHTML=rows||'<div class="empty">لا يوجد موظفون بموعد اليوم.</div>';
+    area.innerHTML=rows||'<div class="empty">لا يوجد موعد صالح لأي موظف اليوم.<br><br><button class="btn primary" onclick="switchTab(\'view-schedules\',document.querySelector(\'.side-nav button[data-tab="view-schedules"]\'))">إنشاء جدول موعد</button></div>';
 
     let present=0,late=0,h=0;
     due.forEach(e=>{
@@ -784,7 +792,8 @@ function renderEmployees(){
 
     document.getElementById('employeesBody').innerHTML=list.map(e=>{
         const schedules=db.schedules.filter(s=>s.employeeId===e.id).length;
-        const bio=e.biometric?'<span class="badge ok">مسجلة</span>':'<span class="badge absent">غير مسجلة</span>';
+        const bioCount=getEmployeeCredentials(e).length;
+        const bio=bioCount?`<span class="badge ok">مسجلة (${bioCount})</span>`:'<span class="badge absent">غير مسجلة</span>';
         return `<tr>
             <td><b>${esc(e.name)}</b></td>
             <td>${esc(e.phone||'-')}</td>
@@ -805,57 +814,77 @@ async function enrollBiometric(employeeId){
     const e=empById(employeeId);
     if(!e)return;
 
-    if(!window.PublicKeyCredential){
-        alert('هذا المتصفح/الجهاز لا يدعم WebAuthn. لتسجيل بصمة فعلية استخدم Chrome/Safari/Edge حديث وعلى HTTPS أو localhost.');
+    if(!window.PublicKeyCredential || !window.isSecureContext){
+        alert('تسجيل البصمة الفعلية يحتاج WebAuthn على HTTPS أو localhost ومتصفح حديث.');
         return;
     }
 
     try{
-        const supported = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
+        const supported=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
         if(supported===false){
-            alert('لا يوجد مستشعر بصمة/تحقق حيوي متاح من الجهاز أو تم تعطيله.');
+            alert('لا يوجد مستشعر بصمة/تحقق حيوي متاح من الجهاز.');
             return;
         }
+
+        if(!Array.isArray(e.biometricCredentials))e.biometricCredentials=[];
 
         const userId=new Uint8Array(16);
         crypto.getRandomValues(userId);
 
-        const publicKey={
-            challenge:crypto.getRandomValues(new Uint8Array(32)),
-            rp:{name:db.settings.company||'نظام الحضور والانصراف'},
-            user:{
-                id:userId,
-                name:(e.phone||e.id),
-                displayName:e.name
-            },
-            pubKeyCredParams:[
-                {type:'public-key',alg:-7},
-                {type:'public-key',alg:-257}
-            ],
-            authenticatorSelection:{
-                authenticatorAttachment:'platform',
-                userVerification:'required',
-                residentKey:'preferred'
-            },
-            timeout:60000,
-            attestation:'none'
-        };
+        const credential=await navigator.credentials.create({
+            publicKey:{
+                challenge:crypto.getRandomValues(new Uint8Array(32)),
+                rp:{name:db.settings.company||'نظام الحضور والانصراف'},
+                user:{
+                    id:userId,
+                    name:`employee-${e.id}`,
+                    displayName:e.name
+                },
+                pubKeyCredParams:[
+                    {type:'public-key',alg:-7},
+                    {type:'public-key',alg:-257}
+                ],
+                authenticatorSelection:{
+                    authenticatorAttachment:'platform',
+                    residentKey:'required',
+                    requireResidentKey:true,
+                    userVerification:'required'
+                },
+                timeout:60000,
+                attestation:'none'
+            }
+        });
 
-        const credential=await navigator.credentials.create({publicKey});
         if(!credential)throw new Error('لم يتم إنشاء الاعتماد');
 
-        e.biometric={
-            credentialId:bytesToBase64Url(new Uint8Array(credential.rawId)),
-            createdAt:new Date().toISOString(),
-            type:'platform-biometric'
-        };
+        const credentialId=bytesToBase64Url(new Uint8Array(credential.rawId));
+
+        e.biometricCredentials.push({
+            credentialId,
+            type:'platform-biometric',
+            createdAt:new Date().toISOString()
+        });
+
+        // Backward compatibility with the old single-credential field.
+        e.biometric={credentialId,createdAt:new Date().toISOString(),type:'platform-biometric'};
+
         saveDB();
         renderEmployees();
-        alert(`تم تسجيل بصمة ${e.name} بنجاح على هذا الجهاز/المتصفح.`);
+
+        alert(`تم حفظ بصمة/اعتماد مستقل للموظف ${e.name}.
+عدد الاعتمادات المحفوظة لهذا الموظف: ${e.biometricCredentials.length}`);
+
     }catch(err){
         console.error(err);
-        alert('تعذر تسجيل البصمة. تأكد من السماح بالبصمة وأن الصفحة تعمل على HTTPS أو localhost.');
+        alert('تعذر حفظ بصمة الموظف. تأكد من أن الجهاز يسمح بإنشاء Passkey وأن الصفحة تعمل على HTTPS أو localhost.');
     }
+}
+function getEmployeeCredentials(e){
+    if(Array.isArray(e.biometricCredentials) && e.biometricCredentials.length)
+        return e.biometricCredentials;
+    if(e.biometric?.credentialId)
+        return [e.biometric];
+    return [];
 }
 function deleteEmployee(idv){
     if(!confirm('حذف الموظف وسجلاته وجداول دوامه؟'))return;
@@ -871,18 +900,31 @@ function deleteEmployee(idv){
 function openScheduleModal(){
     const select=document.getElementById('scEmployee');
     select.innerHTML=db.employees.filter(e=>e.active!==false).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
+    const d=new Date();
+    document.getElementById('scMonth').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
     document.getElementById('scFrom').value=today();
     document.getElementById('scTo').value=today();
     document.getElementById('scAltStart').value=today();
     document.getElementById('scCustomDates').value='';
     document.querySelectorAll('.dow').forEach(x=>x.checked=false);
     document.getElementById('scPattern').value='month';
+    document.getElementById('scStart').value='08:00';
+    document.getElementById('scEnd').value='16:00';
     toggleScheduleFields();
     document.getElementById('scheduleModal').classList.add('show');
 }
+function getMonthBounds(ym){
+    const [y,m]=ym.split('-').map(Number);
+    const last=new Date(y,m,0);
+    return {
+        from:y+'-'+String(m).padStart(2,'0')+'-01',
+        to:y+'-'+String(m).padStart(2,'0')+'-'+String(last.getDate()).padStart(2,'0')
+    };
+}
 function toggleScheduleFields(){
     const p=document.getElementById('scPattern').value;
-    document.querySelectorAll('.rangeField').forEach(x=>x.classList.toggle('hidden',p!=='month'&&p!=='range'));
+    document.getElementById('monthField').classList.toggle('hidden',p!=='month');
+    document.querySelectorAll('.rangeField').forEach(x=>x.classList.toggle('hidden',p!=='range'));
     document.getElementById('weekField').classList.toggle('hidden',p!=='weekly');
     document.getElementById('alternateField').classList.toggle('hidden',p!=='alternate');
     document.getElementById('customField').classList.toggle('hidden',p!=='custom');
@@ -892,39 +934,78 @@ function saveSchedule(){
     const days=[...document.querySelectorAll('.dow:checked')].map(x=>x.value);
     const custom=document.getElementById('scCustomDates').value.split(',').map(x=>x.trim()).filter(Boolean);
 
-    if(!document.getElementById('scEmployee').value)return alert('أضف موظفاً أولاً');
-    if(!document.getElementById('scStart').value||!document.getElementById('scEnd').value)return alert('حدد وقت الدخول والانصراف');
-    if(pattern==='weekly'&&!days.length)return alert('حدد أيام الأسبوع');
-    if(pattern==='custom'&&!custom.length)return alert('أدخل تواريخ مخصصة');
+    const employeeId=document.getElementById('scEmployee').value;
+    if(!employeeId)return alert('أضف موظفاً أولاً');
+    if(!document.getElementById('scStart').value||!document.getElementById('scEnd').value)
+        return alert('حدد وقت الدخول والانصراف');
+
+    let from='',to='';
+
+    if(pattern==='month'){
+        const month=document.getElementById('scMonth').value;
+        if(!month)return alert('اختر الشهر المطلوب');
+        ({from,to}=getMonthBounds(month));
+    }else if(pattern==='range'){
+        from=document.getElementById('scFrom').value;
+        to=document.getElementById('scTo').value;
+        if(!from||!to)return alert('حدد بداية ونهاية الفترة');
+        if(to<from)return alert('تاريخ النهاية يجب أن يكون بعد تاريخ البداية');
+    }else if(pattern==='weekly'){
+        from=document.getElementById('scFrom').value||'0000-01-01';
+        to=document.getElementById('scTo').value||'9999-12-31';
+        if(!days.length)return alert('حدد يومًا واحدًا على الأقل');
+    }else if(pattern==='alternate'){
+        const altStart=document.getElementById('scAltStart').value;
+        if(!altStart)return alert('حدد تاريخ بداية نمط يوم بعد يوم');
+        from=altStart;
+        to='9999-12-31';
+    }else if(pattern==='custom'){
+        if(!custom.length)return alert('أدخل تواريخ مخصصة');
+        custom.sort();
+        from=custom[0];to=custom[custom.length-1];
+    }
 
     const s={
         id:id('sch'),
-        employeeId:document.getElementById('scEmployee').value,
+        employeeId,
         pattern,
         start:document.getElementById('scStart').value,
         end:document.getElementById('scEnd').value,
-        from:document.getElementById('scFrom').value,
-        to:document.getElementById('scTo').value,
+        from,to,
+        month:pattern==='month'?document.getElementById('scMonth').value:'',
         days,
         altStart:document.getElementById('scAltStart').value,
         customDates:custom
     };
 
     db.schedules.push(s);
-    saveDB();closeModal('scheduleModal');renderSchedules();renderTodayRecords();
-    alert('تم حفظ جدول الدوام');
+    saveDB();
+    closeModal('scheduleModal');
+    renderSchedules();
+    renderTodayRecords();
+    renderAttendance();
+    alert('تم حفظ جدول الدوام بنجاح. أصبح للموظف موعد صالح حسب القاعدة التي اخترتها.');
 }
 function renderSchedules(){
     const dayName=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
     document.getElementById('schedulesBody').innerHTML=db.schedules.map(s=>{
         const e=empById(s.employeeId);
         const days=(s.days||[]).map(d=>dayName[Number(d)]).join('، ');
-        const p={month:'طول الشهر',range:'فترة محددة',weekly:'أيام أسبوعية',alternate:'يوم بعد يوم',custom:'تواريخ مخصصة'}[s.pattern];
+        const p={
+            month:'طول الشهر',
+            range:'فترة محددة',
+            weekly:'أيام أسبوعية',
+            alternate:'يوم بعد يوم',
+            custom:'تواريخ مخصصة'
+        }[s.pattern];
+
         return `<tr>
-            <td>${esc(e?.name||'محذوف')}</td><td>${p}</td>
-            <td>${s.from||'-'} → ${s.to||'-'}</td>
-            <td>${days||((s.customDates||[]).join('، ')||'يومي')}</td>
-            <td>${s.start}</td><td>${s.end}</td>
+            <td>${esc(e?.name||'محذوف')}</td>
+            <td>${p}</td>
+            <td>${s.pattern==='month' ? esc(s.month||'') : `${s.from||'-'} → ${s.to==='9999-12-31'?'مفتوح':(s.to||'-')}`}</td>
+            <td>${days||((s.customDates||[]).join('، ')||'كل يوم حسب القاعدة')}</td>
+            <td>${s.start}</td>
+            <td>${s.end}</td>
             <td><button class="btn danger" onclick="deleteSchedule('${s.id}')">حذف</button></td>
         </tr>`;
     }).join('') || '<tr><td colspan="7" class="empty">لا توجد جداول</td></tr>';
@@ -932,7 +1013,10 @@ function renderSchedules(){
 function deleteSchedule(idv){
     if(!confirm('حذف جدول الدوام؟'))return;
     db.schedules=db.schedules.filter(x=>x.id!==idv);
-    saveDB();renderSchedules();renderTodayRecords();
+    saveDB();
+    renderSchedules();
+    renderTodayRecords();
+    renderAttendance();
 }
 
 /* =========================
@@ -948,7 +1032,7 @@ function setCheckIn(empId){
 
     const schedule=currentSchedule(empId,date,time);
     if(!schedule && Number(db.settings.strict)===1){
-        return {ok:false,msg:'لا يمكن التسجيل: لا يوجد للموظف موعد صالح الآن.'};
+        return {ok:false,msg:'لا يمكن التسجيل: لا يوجد للموظف موعد صالح في هذا الوقت.'};
     }
 
     let a=getRecord(empId,date);
@@ -1064,44 +1148,75 @@ async function startBiometric(){
         return;
     }
 
-    const employeesWithBio=db.employees.filter(e=>e.active!==false&&e.biometric?.credentialId);
+    const employeesWithBio=db.employees
+        .filter(e=>e.active!==false)
+        .filter(e=>getEmployeeCredentials(e).length);
+
     if(!employeesWithBio.length){
-        alert('لا توجد بصمة مسجلة لأي موظف. سجّل بصمة من صفحة الموظفين أولاً.');
+        alert('لا توجد بصمات/اعتمادات مسجلة لأي موظف.');
         return;
     }
 
     try{
-        const allow=employeesWithBio
-            .filter(e=>!preferredEmployeeId || e.id===preferredEmployeeId || true)
-            .map(e=>({
+        let allowCredentials=[];
+
+        // If this action was opened from a specific employee row,
+        // only that employee's credentials are accepted.
+        if(preferredEmployeeId){
+            const target=empById(preferredEmployeeId);
+            allowCredentials=getEmployeeCredentials(target).map(c=>({
                 type:'public-key',
-                id:base64UrlToBytes(e.biometric.credentialId)
+                id:base64UrlToBytes(c.credentialId)
             }));
+        }else{
+            // Kiosk mode: ask the platform authenticator/browser to return
+            // a discoverable credential. The returned credential ID identifies
+            // which employee record to use.
+            allowCredentials=[];
+        }
 
         document.getElementById('biometricStatus').className='bio-status ok';
-        document.getElementById('biometricStatus').textContent='ضع إصبعك على مستشعر الجهاز...';
+        document.getElementById('biometricStatus').textContent=
+            'ضع إصبعك على مستشعر الجهاز لإكمال التحقق...';
 
-        const assertion=await navigator.credentials.get({
-            publicKey:{
-                challenge:crypto.getRandomValues(new Uint8Array(32)),
-                allowCredentials:allow,
-                userVerification:'required',
-                timeout:60000
-            }
-        });
+        const options={
+            challenge:crypto.getRandomValues(new Uint8Array(32)),
+            userVerification:'required',
+            timeout:60000
+        };
 
+        if(allowCredentials.length)options.allowCredentials=allowCredentials;
+
+        const assertion=await navigator.credentials.get({publicKey:options});
         if(!assertion)throw new Error('لم يتم التحقق');
 
         const credentialId=bytesToBase64Url(new Uint8Array(assertion.rawId));
-        const employee=employeesWithBio.find(e=>e.biometric.credentialId===credentialId);
+
+        const employee=employeesWithBio.find(e =>
+            getEmployeeCredentials(e).some(c=>c.credentialId===credentialId)
+        );
 
         if(!employee){
             document.getElementById('biometricStatus').className='bio-status bad';
-            document.getElementById('biometricStatus').textContent='تم التحقق، لكن لم يتم التعرف على الموظف.';
+            document.getElementById('biometricStatus').textContent=
+                'تم التحقق لكن معرف البصمة غير مرتبط بسجل موظف في هذا النظام.';
             return;
         }
 
-        const result=currentScanType==='in'?setCheckIn(employee.id):setCheckOut(employee.id);
+        // Final hard check: no valid schedule = no attendance.
+        const currentDate=today();
+        const schedule=currentSchedule(employee.id,currentDate,nowTime());
+
+        if(!schedule && Number(db.settings.strict)===1){
+            document.getElementById('biometricStatus').className='bio-status bad';
+            document.getElementById('biometricStatus').textContent=
+                `تم التعرف على ${employee.name} لكن لا يوجد له موعد صالح الآن.`;
+            return;
+        }
+
+        const result=currentScanType==='in'
+            ? setCheckIn(employee.id)
+            : setCheckOut(employee.id);
 
         if(!result.ok){
             document.getElementById('biometricStatus').className='bio-status bad';
@@ -1112,15 +1227,15 @@ async function startBiometric(){
         document.getElementById('biometricStatus').className='bio-status ok';
         document.getElementById('biometricStatus').textContent=result.msg;
 
-        renderTodayRecords();
-        renderAttendance();
+        renderAll();
         closeModal('scannerModal');
-
         setTimeout(()=>alert(result.msg),120);
+
     }catch(err){
         console.error(err);
         document.getElementById('biometricStatus').className='bio-status bad';
-        document.getElementById('biometricStatus').textContent='تعذر التحقق بالبصمة. تأكد من قفل/فتح الجهاز والسماح بالتحقق البيومتري.';
+        document.getElementById('biometricStatus').textContent=
+            'تعذر التحقق بالبصمة. تأكد من البصمة وقفل/فتح الجهاز والسماح بالتحقق البيومتري.';
     }
 }
 function manualAttendance(){
@@ -1252,6 +1367,29 @@ function resetAll(){
 /* =========================
    INIT
 ========================= */
+
+(function migrateSchedules(){
+    let changed=false;
+    db.schedules.forEach(s=>{
+        if(s.pattern==='month' && !s.month){
+            if(s.from && /^\d{4}-\d{2}-\d{2}$/.test(s.from)){
+                s.month=s.from.slice(0,7);
+                const b=getMonthBounds(s.month);
+                s.from=b.from;
+                s.to=b.to;
+                changed=true;
+            }
+        }
+        db.employees.forEach(e=>{
+            if(e.biometric && (!Array.isArray(e.biometricCredentials) || !e.biometricCredentials.length)){
+                e.biometricCredentials=[e.biometric];
+                changed=true;
+            }
+        });
+    });
+    if(changed)saveDB();
+})();
+
 document.getElementById('todayLabel').textContent=
     new Date().toLocaleDateString('ar-PS',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 document.getElementById('reportFrom').value=today();
