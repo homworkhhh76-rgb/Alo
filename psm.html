@@ -295,6 +295,9 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
     .stat .n{font-size:21px}
     .panel{padding:14px}
 }
+
+.bio-methods{display:flex;gap:5px;flex-wrap:wrap}
+
 </style>
 </head>
 <body>
@@ -314,7 +317,6 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
         <button class="active" data-tab="view-home"><i class="fas fa-home"></i><span>الرئيسية</span></button>
         <button data-tab="view-attendance"><i class="fas fa-user-check"></i><span>الحضور والانصراف</span></button>
         <button data-tab="view-employees"><i class="fas fa-users-cog"></i><span>الموظفون والبصمات</span></button>
-        <button data-tab="view-schedules"><i class="fas fa-calendar-alt"></i><span>جداول الدوام</span></button>
         <button data-tab="view-reports"><i class="fas fa-clipboard-list"></i><span>التقارير</span></button>
         <button data-tab="view-settings"><i class="fas fa-cog"></i><span>الإعدادات</span></button>
     </div>
@@ -381,7 +383,7 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
 
 <div class="panel">
     <div class="panel-title">
-        <div><h3>الحضور والانصراف</h3><p>التسجيل مربوط بالموعد الفعلي للموظف</p></div>
+        <div><h3>الحضور والانصراف</h3><p>الحضور مفتوح بدون موعد مسبق</p></div>
         <div class="header-actions">
             <input id="attendanceDate" class="form-control" type="date" style="width:auto">
             <button class="btn primary" onclick="openScanner('in')"><i class="fas fa-fingerprint"></i></button>
@@ -389,7 +391,7 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
     </div>
     <div class="table-responsive">
         <table>
-            <thead><tr><th>الموظف</th><th>الموعد</th><th>الدخول</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th><th>إجراء</th></tr></thead>
+            <thead><tr><th>الموظف</th><th>الحالة</th><th>الدخول</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th><th>إجراء</th></tr></thead>
             <tbody id="attendanceBody"></tbody>
         </table>
     </div>
@@ -405,10 +407,12 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
     </div>
 
     <div class="permission-card">
-        <b>نظام البصمة لكل موظف:</b>
-        لكل موظف يتم إنشاء <b>اعتماد WebAuthn مستقل</b> وحفظ معرفه داخل سجل الموظف. عند الحضور يحدد النظام اعتماد الموظف ثم يطلب بصمة الجهاز للتحقق.
+        <b>بصمات مستقلة لكل موظف:</b>
+        لكل موظف يمكن تسجيل اعتماد بيومتري مستقل لملف <b>الإصبع</b> واعتماد مستقل لملف <b>الوجه</b>.
+        يتم حفظ معرفات الاعتمادات محلياً داخل سجل الموظف واستخدامها للتعرف على الموظف عند الحضور.
         <br><br>
-        <b>تنبيه مهم:</b> المتصفح لا يسمح لصفحة HTML بأخذ قالب بصمة الإصبع الخام أو معرفة أي إصبع/شخص فتح مستشعر الهاتف. لذلك التخزين يكون للـWebAuthn Credential الخاص بكل موظف، وليس صورة البصمة.
+        <b>مهم:</b> المتصفح لا يسمح بحفظ صورة/قالب بصمة الإصبع أو الوجه الخام. الذي يمكن حفظه هو <b>WebAuthn Credential ID</b> الناتج من نظام الأمان في الجهاز.
+        كما أن المتصفح لا يضمن أن الاعتماد البيومتري يستخدم الإصبع أو الوجه تحديداً؛ هذا يحدده الجهاز ونظام التشغيل.
         يفضّل تشغيل النظام على HTTPS أو localhost.
     </div>
 
@@ -418,24 +422,8 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
 
     <div class="table-responsive">
         <table>
-            <thead><tr><th>الموظف</th><th>الجوال</th><th>حالة البصمة</th><th>الدوام</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+            <thead><tr><th>الموظف</th><th>الجوال</th><th>البصمات المحفوظة</th><th>الدوام</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
             <tbody id="employeesBody"></tbody>
-        </table>
-    </div>
-</div>
-</section>
-
-<!-- SCHEDULES -->
-<section id="view-schedules" class="view-section">
-<div class="panel">
-    <div class="panel-title">
-        <div><h3>جداول الدوام والمواعيد</h3><p>شهر كامل / فترة / أسبوع / يوم بعد يوم / تواريخ مخصصة</p></div>
-        <button class="btn primary" onclick="openScheduleModal()"><i class="fas fa-calendar-plus"></i> جدول جديد</button>
-    </div>
-    <div class="table-responsive">
-        <table>
-            <thead><tr><th>الموظف</th><th>النمط</th><th>الفترة</th><th>الأيام</th><th>الدخول</th><th>الانصراف</th><th>الإجراء</th></tr></thead>
-            <tbody id="schedulesBody"></tbody>
         </table>
     </div>
 </div>
@@ -457,12 +445,12 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
     <div class="stats" style="margin-bottom:14px">
         <div class="stat"><div><div class="n" id="rTotal">0</div><div class="l">السجلات</div></div><div class="sicon">📄</div></div>
         <div class="stat"><div><div class="n" id="rPresent">0</div><div class="l">حضور</div></div><div class="sicon">✅</div></div>
-        <div class="stat"><div><div class="n" id="rAbsent">0</div><div class="l">غياب حسب الموعد</div></div><div class="sicon">❌</div></div>
+        <div class="stat"><div><div class="n" id="rAbsent">0</div><div class="l">بدون تسجيل</div></div><div class="sicon">❌</div></div>
         <div class="stat"><div><div class="n" id="rHours">0:00</div><div class="l">إجمالي الساعات</div></div><div class="sicon">🕒</div></div>
     </div>
     <div class="table-responsive" id="reportPrintable">
         <table id="reportsTable">
-            <thead><tr><th>الموظف</th><th>التاريخ</th><th>الموعد</th><th>الدخول</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th></tr></thead>
+            <thead><tr><th>الموظف</th><th>التاريخ</th><th>الحالة</th><th>الدخول</th><th>الانصراف</th><th>الساعات</th><th>الحالة</th></tr></thead>
             <tbody id="reportsBody"></tbody>
         </table>
     </div>
@@ -509,55 +497,12 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
         <div class="form-group full"><label>ملاحظات</label><textarea id="empNotes" class="form-control" rows="2"></textarea></div>
     </div>
     <div class="permission-card" style="margin-top:12px;text-align:right">
-        بعد حفظ الموظف اضغط <b>تسجيل بصمة الموظف</b>. سيطلب الهاتف أو اللابتوب التحقق البيومتري من بصمة الإصبع/الوجه.
+        بعد حفظ الموظف ستظهر في سجل الموظفين أزرار <b>بصمة إصبع</b> و<b>بصمة وجه</b>.
+        كل نوع يُخزن كاعتماد مستقل مرتبط بهذا الموظف.
     </div>
     <div style="display:flex;gap:8px;margin-top:14px">
         <button class="btn primary" style="flex:1" onclick="saveEmployee()">حفظ</button>
         <button class="btn" style="flex:1" onclick="closeModal('employeeModal')">إلغاء</button>
-    </div>
-</div>
-</div>
-
-<!-- SCHEDULE MODAL -->
-<div id="scheduleModal" class="modal-overlay">
-<div class="modal-content">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
-        <h3>إضافة جدول دوام</h3>
-        <button class="btn" onclick="closeModal('scheduleModal')">✕</button>
-    </div>
-    <div class="form-grid" style="text-align:right">
-        <div class="form-group"><label>الموظف</label><select id="scEmployee" class="form-control"></select></div>
-        <div class="form-group"><label>نوع الجدول</label>
-            <select id="scPattern" class="form-control" onchange="toggleScheduleFields()">
-                <option value="month">طول شهر محدد</option>
-                <option value="range">من تاريخ إلى تاريخ</option>
-                <option value="weekly">أيام محددة من الأسبوع</option>
-                <option value="alternate">يوم بعد يوم</option>
-                <option value="custom">تواريخ مخصصة</option>
-            </select>
-        </div>
-        <div id="monthField" class="form-group"><label>الشهر</label><input id="scMonth" class="form-control" type="month"></div>
-        <div class="form-group"><label>وقت الدخول</label><input id="scStart" class="form-control" type="time" value="08:00"></div>
-        <div class="form-group"><label>وقت الانصراف</label><input id="scEnd" class="form-control" type="time" value="16:00"></div>
-        <div class="form-group rangeField hidden"><label>من تاريخ</label><input id="scFrom" class="form-control" type="date"></div>
-        <div class="form-group rangeField hidden"><label>إلى تاريخ</label><input id="scTo" class="form-control" type="date"></div>
-        <div id="weekField" class="form-group full hidden"><label>أيام الأسبوع</label>
-            <div class="days-grid">
-                <label class="day-chip"><input class="dow" type="checkbox" value="0"> الأحد</label>
-                <label class="day-chip"><input class="dow" type="checkbox" value="1"> الاثنين</label>
-                <label class="day-chip"><input class="dow" type="checkbox" value="2"> الثلاثاء</label>
-                <label class="day-chip"><input class="dow" type="checkbox" value="3"> الأربعاء</label>
-                <label class="day-chip"><input class="dow" type="checkbox" value="4"> الخميس</label>
-                <label class="day-chip"><input class="dow" type="checkbox" value="5"> الجمعة</label>
-                <label class="day-chip"><input class="dow" type="checkbox" value="6"> السبت</label>
-            </div>
-        </div>
-        <div id="alternateField" class="form-group full hidden"><label>تاريخ بداية يوم بعد يوم</label><input id="scAltStart" class="form-control" type="date"></div>
-        <div id="customField" class="form-group full hidden"><label>تواريخ مخصصة</label><input id="scCustomDates" class="form-control" placeholder="2026-08-25,2026-08-28,2026-09-01"></div>
-    </div>
-    <div class="top-actions" style="margin-top:14px">
-        <button class="btn primary" style="flex:1" onclick="saveSchedule()">حفظ الجدول</button>
-        <button class="btn" style="flex:1" onclick="closeModal('scheduleModal')">إلغاء</button>
     </div>
 </div>
 </div>
@@ -567,7 +512,7 @@ th{background:var(--primary-light);color:var(--primary);position:sticky;top:0}
 <div class="modal-content">
     <div class="fingerprint-icon"><i class="fas fa-fingerprint"></i></div>
     <h3 id="scannerTitle">التحقق بالبصمة</h3>
-    <p id="scannerHint">سيتم التحقق من اعتماد الموظف المخزن ثم يطلب الجهاز بصمة الإصبع. النظام لا يستقبل قالب البصمة الخام من الهاتف.</p>
+    <p id="scannerHint">سيتم التحقق من الاعتماد البيومتري الخاص بالموظف. لا يوجد جدول موعد: الموظف يستطيع تسجيل الدخول أو الانصراف في أي وقت.</p>
 
     <div id="biometricStatus" class="bio-status" style="background:#f7f8f9;color:#66717a">
         جاري تجهيز التحقق...
@@ -660,46 +605,18 @@ function switchTab(tabId,el){
     if(tabId==='view-home')renderTodayRecords();
     if(tabId==='view-attendance')renderAttendance();
     if(tabId==='view-employees')renderEmployees();
-    if(tabId==='view-schedules')renderSchedules();
+    if(tabId==='view-schedules')
     if(tabId==='view-reports')renderReports();
 }
 document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>switchTab(el.dataset.tab,el)));
 
 /* =========================
-   SCHEDULE LOGIC
+   ATTENDANCE MODE
+   لا توجد جداول أو مواعيد؛ الحضور مفتوح.
 ========================= */
-function scheduleApplies(s,date){
-    if(date<(s.from||'0000-01-01') || date>(s.to||'9999-12-31'))return false;
-    const d=new Date(date+'T00:00:00');
-    const dow=d.getDay();
-
-    if(s.pattern==='month' || s.pattern==='range')return true;
-    if(s.pattern==='weekly')return (s.days||[]).map(Number).includes(dow);
-
-    if(s.pattern==='alternate'){
-        const start=new Date((s.altStart||date)+'T00:00:00');
-        const cur=new Date(date+'T00:00:00');
-        const diff=Math.floor((cur-start)/86400000);
-        return diff>=0 && diff%2===0;
-    }
-
-    if(s.pattern==='custom')return (s.customDates||[]).includes(date);
-    return false;
-}
-function schedulesFor(empId,date){
-    return db.schedules.filter(s=>s.employeeId===empId&&scheduleApplies(s,date));
-}
-function currentSchedule(empId,date,time){
-    const list=schedulesFor(empId,date);
-    const t=mins(time);
-    const before=Number(db.settings.before||0);
-    const candidates=list.filter(s=>{
-        const start=mins(s.start), end=mins(s.end);
-        return t>=start-before && t<=end+120;
-    });
-    return candidates[0]||null;
-}
-function isDue(empId,date){return schedulesFor(empId,date).length>0}
+function isDue(empId,date){return true}
+function schedulesFor(empId,date){return []}
+function currentSchedule(empId,date,time){return null}
 
 /* =========================
    HOME / DASHBOARD
@@ -740,8 +657,8 @@ function renderTodayRecords(){
     document.getElementById('statHours').textContent=hoursText(h);
 
     const anyAbsent=due.length-present;
-    document.getElementById('homeStatusText').textContent=anyAbsent>0?'أنت الآن جاهز لتسجيل الحضور':'الحضور اليوم محدث';
-    document.getElementById('homeStatusSub').textContent=anyAbsent>0?'استخدم بصمة الإصبع لتسجيل الموظف صاحب الموعد':'تم تحديث سجلات اليوم';
+    document.getElementById('homeStatusText').textContent='أنت الآن جاهز لتسجيل الحضور';
+    document.getElementById('homeStatusSub').textContent='الحضور مفتوح بدون موعد مسبق';
 }
 
 /* =========================
@@ -792,8 +709,10 @@ function renderEmployees(){
 
     document.getElementById('employeesBody').innerHTML=list.map(e=>{
         const schedules=db.schedules.filter(s=>s.employeeId===e.id).length;
-        const bioCount=getEmployeeCredentials(e).length;
-        const bio=bioCount?`<span class="badge ok">مسجلة (${bioCount})</span>`:'<span class="badge absent">غير مسجلة</span>';
+        const methods=getAllCredentialMethods(e);
+        const fingerCount=methods.fingerprint.length;
+        const faceCount=methods.face.length;
+        const bio=`<span class="badge ok">إصبع: ${fingerCount}</span> <span class="badge info">وجه: ${faceCount}</span>`;
         return `<tr>
             <td><b>${esc(e.name)}</b></td>
             <td>${esc(e.phone||'-')}</td>
@@ -802,7 +721,8 @@ function renderEmployees(){
             <td>${e.active!==false?'<span class="badge ok">نشط</span>':'<span class="badge absent">موقوف</span>'}</td>
             <td>
                 <div class="list-actions">
-                    <button class="btn" onclick="enrollBiometric('${e.id}')"><i class="fas fa-fingerprint"></i> تسجيل بصمة</button>
+                    <button class="btn" onclick="enrollBiometric('${e.id}','fingerprint')"><i class="fas fa-fingerprint"></i> بصمة إصبع</button>
+                    <button class="btn" onclick="enrollBiometric('${e.id}','face')"><i class="fas fa-face-smile"></i> بصمة وجه</button>
                     <button class="btn" onclick="openEmployeeModal('${e.id}')">تعديل</button>
                     <button class="btn danger" onclick="deleteEmployee('${e.id}')">حذف</button>
                 </div>
@@ -810,23 +730,27 @@ function renderEmployees(){
         </tr>`;
     }).join('') || '<tr><td colspan="6" class="empty">لا يوجد موظفون</td></tr>';
 }
-async function enrollBiometric(employeeId){
+async function enrollBiometric(employeeId, method='fingerprint'){
     const e=empById(employeeId);
     if(!e)return;
 
     if(!window.PublicKeyCredential || !window.isSecureContext){
-        alert('تسجيل البصمة الفعلية يحتاج WebAuthn على HTTPS أو localhost ومتصفح حديث.');
+        alert('التسجيل البيومتري يحتاج WebAuthn على HTTPS أو localhost ومتصفح حديث.');
         return;
     }
 
     try{
         const supported=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
         if(supported===false){
-            alert('لا يوجد مستشعر بصمة/تحقق حيوي متاح من الجهاز.');
+            alert('لا يوجد مستشعر تحقق حيوي متاح من الجهاز.');
             return;
         }
 
-        if(!Array.isArray(e.biometricCredentials))e.biometricCredentials=[];
+        if(!Array.isArray(e.fingerprintCredentials))e.fingerprintCredentials=[];
+        if(!Array.isArray(e.faceCredentials))e.faceCredentials=[];
+
+        const bucket = method==='face' ? e.faceCredentials : e.fingerprintCredentials;
+        const label = method==='face' ? 'الوجه' : 'الإصبع';
 
         const userId=new Uint8Array(16);
         crypto.getRandomValues(userId);
@@ -837,8 +761,8 @@ async function enrollBiometric(employeeId){
                 rp:{name:db.settings.company||'نظام الحضور والانصراف'},
                 user:{
                     id:userId,
-                    name:`employee-${e.id}`,
-                    displayName:e.name
+                    name:`employee-${e.id}-${method}`,
+                    displayName:`${e.name} - ${label}`
                 },
                 pubKeyCredParams:[
                     {type:'public-key',alg:-7},
@@ -859,45 +783,48 @@ async function enrollBiometric(employeeId){
 
         const credentialId=bytesToBase64Url(new Uint8Array(credential.rawId));
 
-        e.biometricCredentials.push({
+        bucket.push({
             credentialId,
-            type:'platform-biometric',
+            method,
+            label,
             createdAt:new Date().toISOString()
         });
-
-        // Backward compatibility with the old single-credential field.
-        e.biometric={credentialId,createdAt:new Date().toISOString(),type:'platform-biometric'};
 
         saveDB();
         renderEmployees();
 
-        alert(`تم حفظ بصمة/اعتماد مستقل للموظف ${e.name}.
-عدد الاعتمادات المحفوظة لهذا الموظف: ${e.biometricCredentials.length}`);
-
+        alert(`تم حفظ اعتماد ${label} للموظف ${e.name}.
+هذا الاعتماد مستقل ومخزن في سجل الموظف.`);
     }catch(err){
         console.error(err);
-        alert('تعذر حفظ بصمة الموظف. تأكد من أن الجهاز يسمح بإنشاء Passkey وأن الصفحة تعمل على HTTPS أو localhost.');
+        alert(`تعذر حفظ اعتماد ${method==='face'?'الوجه':'الإصبع'}.
+قد يكون الجهاز لا يدعم طريقة التحقق المطلوبة أو أن النظام يعمل خارج HTTPS/localhost.`);
     }
-}
-function getEmployeeCredentials(e){
-    if(Array.isArray(e.biometricCredentials) && e.biometricCredentials.length)
-        return e.biometricCredentials;
-    if(e.biometric?.credentialId)
-        return [e.biometric];
-    return [];
 }
 function deleteEmployee(idv){
     if(!confirm('حذف الموظف وسجلاته وجداول دوامه؟'))return;
     db.employees=db.employees.filter(e=>e.id!==idv);
     db.schedules=db.schedules.filter(s=>s.employeeId!==idv);
     db.attendance=db.attendance.filter(a=>a.employeeId!==idv);
-    saveDB();renderEmployees();renderSchedules();renderTodayRecords();
+    saveDB();renderEmployees();renderTodayRecords();
 }
 
 /* =========================
    SCHEDULES
 ========================= */
+function openSchedulePage(){
+    const sideBtn=document.querySelector('.side-nav button[data-tab=\"view-schedules\"]');
+    const mobileBtn=document.querySelector('.bottom-nav .nav-item[data-tab=\"view-schedules\"]');
+    switchTab('view-schedules', sideBtn || mobileBtn || document.querySelector('.nav-item'));
+    setTimeout(()=>openScheduleModal(),80);
+}
+
 function openScheduleModal(){
+    if(!db.employees.some(e=>e.active!==false)){
+        alert('أضف موظفًا أولاً ثم أنشئ له جدول المواعيد.');
+        switchTab('view-employees',document.querySelector('.side-nav button[data-tab=\"view-employees\"]') || document.querySelector('.nav-item'));
+        return;
+    }
     const select=document.getElementById('scEmployee');
     select.innerHTML=db.employees.filter(e=>e.active!==false).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
     const d=new Date();
@@ -981,7 +908,6 @@ function saveSchedule(){
     db.schedules.push(s);
     saveDB();
     closeModal('scheduleModal');
-    renderSchedules();
     renderTodayRecords();
     renderAttendance();
     alert('تم حفظ جدول الدوام بنجاح. أصبح للموظف موعد صالح حسب القاعدة التي اخترتها.');
@@ -1014,7 +940,6 @@ function deleteSchedule(idv){
     if(!confirm('حذف جدول الدوام؟'))return;
     db.schedules=db.schedules.filter(x=>x.id!==idv);
     saveDB();
-    renderSchedules();
     renderTodayRecords();
     renderAttendance();
 }
@@ -1028,26 +953,27 @@ document.getElementById('attendanceDate').addEventListener('change',renderAttend
 function getRecord(empId,date){return db.attendance.find(a=>a.employeeId===empId&&a.date===date)}
 function setCheckIn(empId){
     const date=today(), time=nowTime(), emp=empById(empId);
-    if(!emp)return;
-
-    const schedule=currentSchedule(empId,date,time);
-    if(!schedule && Number(db.settings.strict)===1){
-        return {ok:false,msg:'لا يمكن التسجيل: لا يوجد للموظف موعد صالح في هذا الوقت.'};
-    }
+    if(!emp)return {ok:false,msg:'الموظف غير موجود'};
 
     let a=getRecord(empId,date);
     if(a?.checkIn)return {ok:false,msg:'تم تسجيل الدخول مسبقاً اليوم.'};
 
     if(!a){
-        a={id:id('att'),employeeId:empId,date,checkIn:null,checkOut:null,totalMinutes:0,status:null,scheduleId:null};
+        a={
+            id:id('att'),
+            employeeId:empId,
+            date,
+            checkIn:null,
+            checkOut:null,
+            totalMinutes:0,
+            status:'present',
+            biometricMethod:null
+        };
         db.attendance.push(a);
     }
 
     a.checkIn=time;
-    a.scheduleId=schedule?.id||null;
-    a.scheduledStart=schedule?.start||null;
-    a.scheduledEnd=schedule?.end||null;
-    a.status=schedule && mins(time)>mins(schedule.start)+Number(db.settings.late||10) ? 'late' : (schedule?'present':'outside');
+    a.status='present';
 
     saveDB();
     return {ok:true,msg:`تم تسجيل دخول ${emp.name} الساعة ${time}`};
@@ -1065,7 +991,7 @@ function setCheckOut(empId){
 }
 function renderAttendance(){
     const d=document.getElementById('attendanceDate').value||today();
-    const list=db.employees.filter(e=>e.active!==false&&isDue(e.id,d));
+    const list=db.employees.filter(e=>e.active!==false);
     document.getElementById('attendanceBody').innerHTML=list.map(e=>{
         const s=schedulesFor(e.id,d)[0];
         const a=getRecord(e.id,d);
@@ -1160,31 +1086,23 @@ async function startBiometric(){
     try{
         let allowCredentials=[];
 
-        // If this action was opened from a specific employee row,
-        // only that employee's credentials are accepted.
         if(preferredEmployeeId){
             const target=empById(preferredEmployeeId);
             allowCredentials=getEmployeeCredentials(target).map(c=>({
                 type:'public-key',
                 id:base64UrlToBytes(c.credentialId)
             }));
-        }else{
-            // Kiosk mode: ask the platform authenticator/browser to return
-            // a discoverable credential. The returned credential ID identifies
-            // which employee record to use.
-            allowCredentials=[];
         }
 
         document.getElementById('biometricStatus').className='bio-status ok';
         document.getElementById('biometricStatus').textContent=
-            'ضع إصبعك على مستشعر الجهاز لإكمال التحقق...';
+            'ضع إصبعك/استخدم التحقق البيومتري على الجهاز...';
 
         const options={
             challenge:crypto.getRandomValues(new Uint8Array(32)),
             userVerification:'required',
             timeout:60000
         };
-
         if(allowCredentials.length)options.allowCredentials=allowCredentials;
 
         const assertion=await navigator.credentials.get({publicKey:options});
@@ -1192,28 +1110,18 @@ async function startBiometric(){
 
         const credentialId=bytesToBase64Url(new Uint8Array(assertion.rawId));
 
-        const employee=employeesWithBio.find(e =>
+        const employee=employeesWithBio.find(e=>
             getEmployeeCredentials(e).some(c=>c.credentialId===credentialId)
         );
 
         if(!employee){
             document.getElementById('biometricStatus').className='bio-status bad';
             document.getElementById('biometricStatus').textContent=
-                'تم التحقق لكن معرف البصمة غير مرتبط بسجل موظف في هذا النظام.';
+                'تم التحقق، لكن الاعتماد غير مرتبط بسجل موظف.';
             return;
         }
 
-        // Final hard check: no valid schedule = no attendance.
-        const currentDate=today();
-        const schedule=currentSchedule(employee.id,currentDate,nowTime());
-
-        if(!schedule && Number(db.settings.strict)===1){
-            document.getElementById('biometricStatus').className='bio-status bad';
-            document.getElementById('biometricStatus').textContent=
-                `تم التعرف على ${employee.name} لكن لا يوجد له موعد صالح الآن.`;
-            return;
-        }
-
+        const credential=getEmployeeCredentials(employee).find(c=>c.credentialId===credentialId);
         const result=currentScanType==='in'
             ? setCheckIn(employee.id)
             : setCheckOut(employee.id);
@@ -1224,18 +1132,22 @@ async function startBiometric(){
             return;
         }
 
+        const rec=getRecord(employee.id,today());
+        if(rec)rec.biometricMethod=credential?.method||'platform';
+
+        saveDB();
+        renderAll();
         document.getElementById('biometricStatus').className='bio-status ok';
         document.getElementById('biometricStatus').textContent=result.msg;
-
-        renderAll();
         closeModal('scannerModal');
+
         setTimeout(()=>alert(result.msg),120);
 
     }catch(err){
         console.error(err);
         document.getElementById('biometricStatus').className='bio-status bad';
         document.getElementById('biometricStatus').textContent=
-            'تعذر التحقق بالبصمة. تأكد من البصمة وقفل/فتح الجهاز والسماح بالتحقق البيومتري.';
+            'تعذر التحقق البيومتري. تأكد من أن الجهاز يدعم WebAuthn وأن الصفحة تعمل على HTTPS أو localhost.';
     }
 }
 function manualAttendance(){
@@ -1269,13 +1181,11 @@ function buildReportRows(){
     for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
         const date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
         db.employees.filter(e=>e.active!==false).forEach(e=>{
-            const sc=schedulesFor(e.id,date)[0];
-            if(!sc)return;
             const a=getRecord(e.id,date);
             rows.push({
                 employee:e,
                 date,
-                schedule:sc,
+                schedule:null,
                 record:a,
                 status:a?.status||'absent'
             });
@@ -1293,7 +1203,7 @@ function renderReports(){
         return `<tr>
             <td>${esc(x.employee.name)}</td>
             <td>${dateText(x.date)}</td>
-            <td>${x.schedule.start} - ${x.schedule.end}</td>
+            <td>'بدون موعد'</td>
             <td>${x.record?.checkIn||'-'}</td>
             <td>${x.record?.checkOut||'-'}</td>
             <td>${hoursText(duration(x.record))}</td>
@@ -1311,7 +1221,7 @@ function exportToExcel(){
         'اسم الموظف':x.employee.name,
         'رقم الجوال':x.employee.phone||'',
         'التاريخ':x.date,
-        'وقت الدوام':`${x.schedule.start} - ${x.schedule.end}`,
+        'النظام':`'بدون موعد'`,
         'وقت الحضور':x.record?.checkIn||'لم يسجل',
         'وقت الانصراف':x.record?.checkOut||'لم يسجل',
         'ساعات العمل':hoursText(duration(x.record)),
@@ -1368,28 +1278,6 @@ function resetAll(){
    INIT
 ========================= */
 
-(function migrateSchedules(){
-    let changed=false;
-    db.schedules.forEach(s=>{
-        if(s.pattern==='month' && !s.month){
-            if(s.from && /^\d{4}-\d{2}-\d{2}$/.test(s.from)){
-                s.month=s.from.slice(0,7);
-                const b=getMonthBounds(s.month);
-                s.from=b.from;
-                s.to=b.to;
-                changed=true;
-            }
-        }
-        db.employees.forEach(e=>{
-            if(e.biometric && (!Array.isArray(e.biometricCredentials) || !e.biometricCredentials.length)){
-                e.biometricCredentials=[e.biometric];
-                changed=true;
-            }
-        });
-    });
-    if(changed)saveDB();
-})();
-
 document.getElementById('todayLabel').textContent=
     new Date().toLocaleDateString('ar-PS',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 document.getElementById('reportFrom').value=today();
@@ -1399,7 +1287,6 @@ function renderAll(){
     renderTodayRecords();
     renderAttendance();
     renderEmployees();
-    renderSchedules();
     renderReports();
     loadSettings();
 }
